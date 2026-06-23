@@ -236,6 +236,130 @@ const MonitoringController = (() => {
 
 document.addEventListener('DOMContentLoaded', () => MonitoringController.init());
 
+/* ================================================================== */
+/* Induction controller (S4)                                           */
+/* ================================================================== */
+const InductionController = (() => {
+  const engine = new InductionEngine();
+  let chart = null;
+  const locSnapshots = [];
+
+  function fmt(x, d = 2) { return (x == null || !Number.isFinite(x)) ? '—' : x.toFixed(d); }
+
+  function setRunningUI(running) {
+    document.getElementById('indStartBtn').disabled = running;
+    document.getElementById('indPauseBtn').disabled = !running;
+    document.getElementById('indBolusBtn').disabled = !engine.state;
+    document.getElementById('indRecordBtn').disabled = !engine.state;
+  }
+
+  function onUpdate(s) {
+    document.getElementById('indElapsed').innerHTML = `${s.elapsedMin.toFixed(1)}<span class="unit"> min</span>`;
+    document.getElementById('indCp').innerHTML = `${fmt(s.cp)}<span class="unit"> µg/mL</span>`;
+    document.getElementById('indCe').innerHTML = `${fmt(s.ceBis)}<span class="unit"> µg/mL</span>`;
+    document.getElementById('indBis').textContent = fmt(s.bis, 1);
+    document.getElementById('indMoaas').innerHTML = `${fmt(s.moaasWeighted, 1)}<span class="unit"> /5</span>`;
+    if (chart) chart.addPoint(s.elapsedMin, s.ceBis, s.bis);
+    if (!s.running && engine.timer === null) setRunningUI(false);
+  }
+
+  function ensureChart() {
+    if (!chart) chart = new RealtimeChart('indChart', 1200);
+  }
+
+  function start() {
+    const patient = App.getPatient();
+    if (!patient) return;
+    if (!engine.state) {
+      const bolus = parseFloat(document.getElementById('indBolus').value) || 0;
+      const cont = parseFloat(document.getElementById('indCont').value) || 0;
+      ensureChart();
+      chart.reset();
+      engine.speedMult = parseInt(document.getElementById('indSpeed').value, 10) || 30;
+      engine.prepare(patient, bolus, cont);
+    } else {
+      // resume: pick up any continuous-rate change
+      engine.setContinuous(parseFloat(document.getElementById('indCont').value) || 0);
+    }
+    engine.start();
+    setRunningUI(true);
+  }
+
+  function pause() { engine.pause(); setRunningUI(false); }
+
+  function giveBolus() {
+    const mg = parseFloat(document.getElementById('indBolus').value) || 0;
+    engine.giveBolus(mg);
+  }
+
+  function record() {
+    const s = engine.observe();
+    if (!s) return;
+    locSnapshots.push({ t: engine.elapsedMin, cp: s.cp, ce: s.ceBis, bis: s.bis, moaas: s.moaasWeighted });
+    renderLoc();
+  }
+
+  function renderLoc() {
+    document.getElementById('indLocCard').style.display = locSnapshots.length ? '' : 'none';
+    document.getElementById('indLocBody').innerHTML = locSnapshots.map(s =>
+      `<tr><td>${s.t.toFixed(1)}</td><td>${s.cp.toFixed(3)}</td><td>${s.ce.toFixed(3)}</td><td>${s.bis.toFixed(1)}</td><td>${s.moaas.toFixed(2)}</td></tr>`
+    ).join('');
+  }
+
+  function reset() {
+    engine.pause();
+    engine.state = null;
+    engine.elapsedMin = 0;
+    locSnapshots.length = 0;
+    renderLoc();
+    if (chart) chart.reset();
+    document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
+    document.getElementById('indCp').innerHTML = '0.00<span class="unit"> µg/mL</span>';
+    document.getElementById('indCe').innerHTML = '0.00<span class="unit"> µg/mL</span>';
+    document.getElementById('indBis').textContent = '93.7';
+    document.getElementById('indMoaas').innerHTML = '5.0<span class="unit"> /5</span>';
+    setRunningUI(false);
+    document.getElementById('indBolusBtn').disabled = true;
+    document.getElementById('indRecordBtn').disabled = true;
+  }
+
+  function init() {
+    engine.onUpdate(onUpdate);
+    document.getElementById('indStartBtn').addEventListener('click', start);
+    document.getElementById('indPauseBtn').addEventListener('click', pause);
+    document.getElementById('indBolusBtn').addEventListener('click', giveBolus);
+    document.getElementById('indRecordBtn').addEventListener('click', record);
+    document.getElementById('indResetBtn').addEventListener('click', reset);
+    document.getElementById('indSpeed').addEventListener('change', (e) => engine.setSpeed(parseInt(e.target.value, 10) || 30));
+    document.getElementById('indCont').addEventListener('change', (e) => engine.setContinuous(parseFloat(e.target.value) || 0));
+    // reset induction when patient changes
+    App.onPatientChange(() => reset());
+  }
+
+  return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', () => InductionController.init());
+
+/* ================================================================== */
+/* Stepper controls (shared)                                           */
+/* ================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.stepper button[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      const stepBy = parseFloat(btn.dataset.step) || 1;
+      const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+      const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+      let v = (parseFloat(input.value) || 0) + stepBy;
+      v = Math.min(max, Math.max(min, v));
+      input.value = Number.isInteger(v) ? v : parseFloat(v.toFixed(3));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+});
+
 /* -------- service worker -------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
