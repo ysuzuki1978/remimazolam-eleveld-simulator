@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0D1117">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Remimazolam TCI Simulator (Eleveld 2025)</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/icon-192.png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +53,42 @@
     <section class="panel" id="panel-monitoring">
       <div class="card">
         <h2>モニタリング（投与イベント → 時系列）</h2>
-        <p class="notice info" id="monitoringPlaceholder">S3 で実装予定。</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="monDuration">シミュレーション時間 (min)</label>
+            <input type="number" id="monDuration" value="60" min="1" max="600" step="1">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn btn-ghost btn-block" id="monAddEventBtn">＋ 投与イベント追加</button>
+          </div>
+        </div>
+        <h3>投与イベント</h3>
+        <div class="tbl-wrap">
+          <table class="tbl" id="monEventsTable">
+            <thead>
+              <tr><th>時刻(min)</th><th>ボーラス(mg)</th><th>持続(mg/hr)</th><th></th></tr>
+            </thead>
+            <tbody id="monEventsBody"></tbody>
+          </table>
+        </div>
+        <p class="notice info" id="monEventsEmpty">投与イベントがありません。「＋ 投与イベント追加」から登録してください（持続は、その時刻以降の注入速度を設定します）。</p>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" id="monRunBtn">シミュレーション実行</button>
+          <button class="btn btn-ghost" id="monCsvBtn" disabled>CSV 出力</button>
+        </div>
+      </div>
+
+      <div class="card" id="monResultsCard" style="display:none;">
+        <h2>結果</h2>
+        <div class="metrics" id="monMetrics"></div>
+        <div class="notice warn" id="monDeepBisNotice" style="display:none;">
+          BIS &lt; 50 域は集団予測にバイアスがあると著者が明記しています（ベンゾジアゼピンの天井効果）。深鎮静域の予測は参考値として扱ってください。
+        </div>
+        <h3>濃度 と 予測 BIS</h3>
+        <div class="chart-wrap"><canvas id="monChartConc"></canvas></div>
+        <h3>確率加重 MOAA/S（鎮静スコア）</h3>
+        <div class="chart-wrap" style="height:200px;"><canvas id="monChartMoaas"></canvas></div>
       </div>
     </section>
   </main>
@@ -125,8 +162,35 @@
     </div>
   </div>
 
+  <!-- ===== Dose event modal ===== -->
+  <div class="modal-backdrop" id="doseEventModal">
+    <div class="modal">
+      <h2>投与イベント</h2>
+      <div class="field">
+        <label for="evTime">時刻 (min) — 麻酔開始からの経過</label>
+        <input type="number" id="evTime" value="0" min="0" step="0.5">
+      </div>
+      <div class="field">
+        <label for="evBolus">ボーラス (mg)</label>
+        <input type="number" id="evBolus" value="0" min="0" step="0.5">
+      </div>
+      <div class="field">
+        <label for="evCont">持続注入 (mg/hr) — この時刻以降の注入速度</label>
+        <input type="number" id="evCont" value="0" min="0" step="0.5">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-block" id="evCancelBtn">キャンセル</button>
+        <button class="btn btn-primary btn-block" id="evSaveBtn">追加</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Scripts (grow per sprint) ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="js/models.js"></script>
+  <script src="js/remimazolam-eleveld-pkpd.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/monitoring-engine.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
