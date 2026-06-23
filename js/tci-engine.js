@@ -40,14 +40,15 @@ const TciEngine = (() => {
     return yy[0] / params.V1;
   }
 
+  const LOADING_MG_PER_KG = 0.1;   // standard loading bolus (mg/kg)
+
   /**
    * General planner (plasma-target TCI).
    *
-   * A small loading bolus fills the central compartment to the initial target
-   * (loadingBolus = targetCe0 · V1), so plasma starts AT the target — no
-   * implausible spike. Each control interval then clamps plasma at the
-   * (possibly time-varying) target via the predictive infusion rate; the
-   * effect-site concentration follows with its ke0 lag.
+   * Delivers a standard weight-based loading bolus (0.1 mg/kg) at t=0, then
+   * each control interval clamps plasma at the (possibly time-varying) target
+   * via the predictive infusion rate; the effect-site concentration follows
+   * with its ke0 lag. (Maintenance starts once plasma has fallen to target.)
    *
    * @param {Patient} patient
    * @param {(timeMin:number, obs:Object, params:Object)=>number} targetCeFn
@@ -63,9 +64,7 @@ const TciEngine = (() => {
     const sampleInterval = opts.sampleInterval != null ? opts.sampleInterval : 0.5;
     const s = infusionSensitivity(params, dtCtrl);
 
-    const obs0 = M.observe(M.createInitialState(), params);
-    const targetCe0 = targetCeFn(0, obs0, params);
-    const loadingBolusMg = targetCe0 * params.V1;   // fill central compartment to target
+    const loadingBolusMg = LOADING_MG_PER_KG * patient.covariates.WGT;   // 0.1 mg/kg
 
     let y = M.bolus(M.createInitialState(), loadingBolusMg);
     const points = [];
