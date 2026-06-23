@@ -1,0 +1,29 @@
+Remimazolam TCI Simulator (Eleveld 2025)
+Copyright 2026 Yasuyuki Suzuki
+
+This product includes software developed by Yasuyuki Suzuki.
+
+------------------------------------------------------------------------
+Pharmacokinetic-pharmacodynamic model
+------------------------------------------------------------------------
+The PK-PD model parameters and equations implemented in this software are
+derived from:
+
+  Eleveld DJ, Colin PJ, van den Berg JP, Koomen JV, Stoehr T, Struys MMRF.
+  Development and analysis of a remimazolam pharmacokinetics and
+  pharmacodynamics model with proposed dosing and concentrations for
+  anaesthesia and sedation. Br J Anaesth. 2025;135(1):206-217.
+  doi:10.1016/j.bja.2025.02.038
+
+  © 2025 The Author(s). Published by Elsevier Ltd on behalf of British
+  Journal of Anaesthesia. Open access under the CC BY 4.0 license
+  (http://creativecommons.org/licenses/by/4.0/).
+
+Model parameters and equations are reused under the terms of CC BY 4.0
+with attribution to the original authors. The software implementation
+itself is licensed under the Apache License 2.0 (see LICENSE).
+
+------------------------------------------------------------------------
+Third-party libraries
+------------------------------------------------------------------------
+Chart.js (https://www.chartjs.org/) — MIT License, loaded via CDN.

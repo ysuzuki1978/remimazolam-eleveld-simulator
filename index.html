@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0D1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Remimazolam TCI Simulator (Eleveld 2025)</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Remimazolam TCI Simulator</h1>
+    <div class="sub">Eleveld 2025 PK-PD model · Ce / BIS / MOAA/S</div>
+    <div class="patient-summary">
+      <div class="info" id="patientInfo">患者未設定</div>
+      <button class="btn btn-ghost" id="editPatientBtn" style="padding:6px 12px;font-size:0.78rem;">患者編集</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-panel="panel-induction">導入</button>
+      <button class="tab" data-panel="panel-tci">TCI / 投与計画</button>
+      <button class="tab" data-panel="panel-monitoring">モニタリング</button>
+    </div>
+
+    <!-- ===== Induction ===== -->
+    <section class="panel active" id="panel-induction">
+      <div class="card">
+        <h2>リアルタイム導入シミュレーション</h2>
+        <p class="notice info" id="inductionPlaceholder">S4 で実装予定。</p>
+      </div>
+    </section>
+
+    <!-- ===== TCI / dosing plan ===== -->
+    <section class="panel" id="panel-tci">
+      <div class="card">
+        <h2>TCI / 投与計画</h2>
+        <p class="notice info" id="tciPlaceholder">S5（効果部位 Ce 目標）・S6（目標 BIS 維持）で実装予定。</p>
+      </div>
+    </section>
+
+    <!-- ===== Monitoring ===== -->
+    <section class="panel" id="panel-monitoring">
+      <div class="card">
+        <h2>モニタリング（投与イベント → 時系列）</h2>
+        <p class="notice info" id="monitoringPlaceholder">S3 で実装予定。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div>
+      PK-PD model: Eleveld DJ, et al. <i>Br J Anaesth</i> 2025;135(1):206-217.
+      doi:10.1016/j.bja.2025.02.038 (CC BY 4.0)
+    </div>
+    <div>
+      研究・教育目的のシミュレータです。臨床判断・実際の投与に使用しないでください。
+    </div>
+    <div>Software: Apache-2.0 · v0.1.0</div>
+  </footer>
+
+  <!-- ===== Patient editor modal ===== -->
+  <div class="modal-backdrop" id="patientModal">
+    <div class="modal">
+      <h2>患者情報</h2>
+      <div class="field">
+        <label for="pId">患者 ID</label>
+        <input type="text" id="pId" value="patient-1">
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="pAge">年齢 (歳)</label>
+          <input type="number" id="pAge" value="35" min="1" max="100">
+        </div>
+        <div class="field">
+          <label for="pWeight">体重 (kg)</label>
+          <input type="number" id="pWeight" value="70" min="5" max="250" step="0.1">
+        </div>
+      </div>
+      <div class="field">
+        <label for="pHeight">身長 (cm) — BMI 表示用（PK には未使用）</label>
+        <input type="number" id="pHeight" value="170" min="30" max="250" step="0.1">
+      </div>
+      <div class="field">
+        <label>性別</label>
+        <div class="radio-row">
+          <label><input type="radio" name="pSex" value="male" checked><span>男性</span></label>
+          <label><input type="radio" name="pSex" value="female"><span>女性</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>オピオイド併用</label>
+        <div class="radio-row">
+          <label><input type="radio" name="pOpioid" value="no" checked><span>なし</span></label>
+          <label><input type="radio" name="pOpioid" value="yes"><span>あり</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pHepatic">肝機能</label>
+        <select id="pHepatic">
+          <option value="normal">正常</option>
+          <option value="severe">高度肝障害 (Pugh-Child &gt; 8)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pRenal">腎機能</label>
+        <select id="pRenal">
+          <option value="normal">正常</option>
+          <option value="esrd">末期腎不全 (ESRD)</option>
+        </select>
+      </div>
+      <div id="patientErrors" class="notice danger hidden"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-block" id="patientCancelBtn">キャンセル</button>
+        <button class="btn btn-primary btn-block" id="patientSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Scripts (grow per sprint) ===== -->
+  <script src="js/models.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

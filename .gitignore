@@ -1,0 +1,23 @@
+# ----- Source paper / supplementary (not redistributed in repo) -----
+*.pdf
+*.docx
+
+# ----- Internal planning notes (contains private grant/research info) -----
+remimazolam-eleveld-simulator-実装計画.md
+
+# ----- OS / editor -----
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# ----- Node -----
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# ----- Misc -----
+*.log
+.cache/
