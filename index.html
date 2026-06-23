@@ -37,7 +37,60 @@
     <section class="panel active" id="panel-induction">
       <div class="card">
         <h2>リアルタイム導入シミュレーション</h2>
-        <p class="notice info" id="inductionPlaceholder">S4 で実装予定。</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="indBolus">初回ボーラス (mg)</label>
+            <div class="stepper">
+              <button type="button" data-step="-1" data-target="indBolus">−</button>
+              <input type="number" id="indBolus" value="10" min="0" max="100" step="1">
+              <button type="button" data-step="1" data-target="indBolus">＋</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="indCont">持続注入 (mg/hr)</label>
+            <div class="stepper">
+              <button type="button" data-step="-5" data-target="indCont">−</button>
+              <input type="number" id="indCont" value="60" min="0" max="600" step="5">
+              <button type="button" data-step="5" data-target="indCont">＋</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="indSpeed">再生速度</label>
+          <select id="indSpeed">
+            <option value="10">×10</option>
+            <option value="30" selected>×30</option>
+            <option value="60">×60</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" id="indStartBtn">開始</button>
+          <button class="btn btn-ghost" id="indPauseBtn" disabled>一時停止</button>
+          <button class="btn btn-ghost" id="indBolusBtn" disabled>追加ボーラス</button>
+          <button class="btn btn-primary" id="indRecordBtn" disabled>LOC 記録</button>
+          <button class="btn btn-danger" id="indResetBtn">リセット</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metrics" id="indMetrics">
+          <div class="metric"><div class="val" id="indElapsed">0.0<span class="unit"> min</span></div><div class="lbl">経過</div></div>
+          <div class="metric cp"><div class="val" id="indCp">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Cp 親薬</div></div>
+          <div class="metric ce"><div class="val" id="indCe">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Ce (BIS)</div></div>
+          <div class="metric bis"><div class="val" id="indBis">93.7</div><div class="lbl">予測 BIS</div></div>
+          <div class="metric moaas"><div class="val" id="indMoaas">5.0<span class="unit"> /5</span></div><div class="lbl">MOAA/S</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="indChart"></canvas></div>
+      </div>
+
+      <div class="card" id="indLocCard" style="display:none;">
+        <h3>LOC スナップショット</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>経過(min)</th><th>Cp(µg/mL)</th><th>Ce(µg/mL)</th><th>BIS</th><th>MOAA/S</th></tr></thead>
+            <tbody id="indLocBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -190,6 +243,7 @@
   <script src="js/models.js"></script>
   <script src="js/remimazolam-eleveld-pkpd.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/induction-engine.js"></script>
   <script src="js/monitoring-engine.js"></script>
   <script src="js/main.js"></script>
 </body>
