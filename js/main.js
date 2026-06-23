@@ -27,17 +27,17 @@ const App = (() => {
   /* -------- patient summary -------- */
   function renderPatientSummary() {
     const el = document.getElementById('patientInfo');
-    if (!patient) { el.textContent = '患者未設定'; return; }
+    if (!patient) { el.textContent = 'No patient set'; return; }
     const bmi = patient.bmi;
     const parts = [
       `<b>${escapeHtml(patient.id)}</b>`,
-      `${patient.age}歳`,
-      `${patient.weight}kg`,
+      `${patient.age} yr`,
+      `${patient.weight} kg`,
       SexType.displayName(patient.sex),
-      patient.opioid ? 'オピオイド+' : 'オピオイド−'
+      patient.opioid ? 'Opioid+' : 'Opioid−'
     ];
     if (bmi) parts.push(`BMI ${bmi.toFixed(1)}`);
-    if (patient.hepatic === HepaticFunction.SEVERE) parts.push('肝↓');
+    if (patient.hepatic === HepaticFunction.SEVERE) parts.push('Hepatic↓');
     if (patient.renal === RenalFunction.ESRD) parts.push('ESRD');
     el.innerHTML = parts.join(' · ');
   }
@@ -149,7 +149,7 @@ const MonitoringController = (() => {
     engine.doseEvents.forEach((ev, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${ev.timeMin}</td><td>${ev.bolusMg || 0}</td><td>${ev.continuousMgHr || 0}</td>` +
-        `<td><button class="btn btn-ghost" data-i="${i}" style="padding:2px 10px;font-size:0.75rem;">削除</button></td>`;
+        `<td><button class="btn btn-ghost" data-i="${i}" style="padding:2px 10px;font-size:0.75rem;">Remove</button></td>`;
       tr.querySelector('button').addEventListener('click', () => { engine.removeDoseEvent(i); renderEventsTable(); });
       body.appendChild(tr);
     });
@@ -175,7 +175,7 @@ const MonitoringController = (() => {
     const patient = App.getPatient();
     if (!patient) return;
     engine.setPatient(patient);
-    if (!engine.doseEvents.length) { alert('投与イベントを1つ以上追加してください'); return; }
+    if (!engine.doseEvents.length) { alert('Add at least one dose event'); return; }
     const duration = Math.max(1, parseFloat(document.getElementById('monDuration').value) || 60);
     lastResult = engine.run({ duration, dt: 0.1, sampleInterval: 0.5 });
     renderResult(lastResult);
@@ -189,11 +189,11 @@ const MonitoringController = (() => {
     // metrics
     const last = pts[pts.length - 1];
     const metrics = [
-      { lbl: '最高 Cp (親薬)', val: result.maxCpRemi.toFixed(3), unit: 'µg/mL', cls: 'cp' },
-      { lbl: '最低 BIS', val: result.minBis != null ? result.minBis.toFixed(1) : '—', unit: '', cls: 'bis' },
-      { lbl: '最高 Ce (BIS)', val: result.maxCeBis.toFixed(3), unit: 'µg/mL', cls: 'ce' },
-      { lbl: '最高 代謝物', val: result.maxCpMet.toFixed(3), unit: 'µg/mL', cls: 'met' },
-      { lbl: '最終 MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '(0-5)', cls: 'moaas' }
+      { lbl: 'Max Cp (parent)', val: result.maxCpRemi.toFixed(3), unit: 'µg/mL', cls: 'cp' },
+      { lbl: 'Min BIS', val: result.minBis != null ? result.minBis.toFixed(1) : '—', unit: '', cls: 'bis' },
+      { lbl: 'Max Ce (BIS)', val: result.maxCeBis.toFixed(3), unit: 'µg/mL', cls: 'ce' },
+      { lbl: 'Max metabolite', val: result.maxCpMet.toFixed(3), unit: 'µg/mL', cls: 'met' },
+      { lbl: 'Final MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '(0-5)', cls: 'moaas' }
     ];
     document.getElementById('monMetrics').innerHTML = metrics.map(m =>
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
@@ -202,9 +202,9 @@ const MonitoringController = (() => {
     document.getElementById('monDeepBisNotice').style.display = (result.minBis != null && result.minBis < 50) ? '' : 'none';
 
     // concentration + BIS chart
-    if (!chartConc) chartConc = new MultiLineChart('monChartConc', { left: { title: '濃度 (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
+    if (!chartConc) chartConc = new MultiLineChart('monChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
     chartConc.render(pts, [
-      { key: 'cpRemi', label: 'Cp 親薬', color: CHART_COLORS.cpRemi, axis: 'left' },
+      { key: 'cpRemi', label: 'Cp (parent)', color: CHART_COLORS.cpRemi, axis: 'left' },
       { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
       { key: 'ceMoaas', label: 'Ce (MOAA/S)', color: CHART_COLORS.ceMoaas, axis: 'left', dash: [4, 3] },
       { key: 'cpMet', label: 'CNS7054', color: CHART_COLORS.cpMet, axis: 'left', dash: [2, 2] },
@@ -214,7 +214,7 @@ const MonitoringController = (() => {
     // MOAA/S chart
     if (!chartMoaas) chartMoaas = new MultiLineChart('monChartMoaas', { left: { title: 'MOAA/S (0-5)', min: 0, max: 5 } });
     chartMoaas.render(pts, [
-      { key: 'moaasWeighted', label: '確率加重 MOAA/S', color: CHART_COLORS.moaas, axis: 'left' }
+      { key: 'moaasWeighted', label: 'Prob.-weighted MOAA/S', color: CHART_COLORS.moaas, axis: 'left' }
     ]);
   }
 
@@ -378,7 +378,7 @@ const TciController = (() => {
     if (loc == null) { banner.classList.add('hidden'); return; }
     const tgt = loc + LOC_MARGIN;
     document.getElementById('tciLocText').innerHTML =
-      `導入で記録した LOC 効果部位 Ce = <b>${loc.toFixed(3)}</b> µg/mL → 目標 <b>${tgt.toFixed(2)}</b> µg/mL (LOC + ${LOC_MARGIN})`;
+      `LOC effect-site Ce recorded in induction = <b>${loc.toFixed(3)}</b> µg/mL → target <b>${tgt.toFixed(2)}</b> µg/mL (LOC + ${LOC_MARGIN})`;
     banner.classList.remove('hidden');
   }
   function applyLoc() {
@@ -404,11 +404,11 @@ const TciController = (() => {
     if (mode === 'ce') {
       const ce = parseFloat(document.getElementById('tciCe').value) || 0.5;
       lastResult = TciEngine.planCeTarget(patient, ce, { duration, sampleInterval: 0.5 });
-      lastResult.label = `効果部位 Ce 目標 ${ce.toFixed(2)} µg/mL`;
+      lastResult.label = `Effect-site Ce target ${ce.toFixed(2)} µg/mL`;
     } else {
       const bis = parseFloat(document.getElementById('tciBis').value) || 50;
       lastResult = TciEngine.planBisTarget(patient, bis, { duration, sampleInterval: 0.5 });
-      lastResult.label = `目標 BIS ${bis}`;
+      lastResult.label = `Target BIS ${bis}`;
     }
     lastMode = mode;
     render(lastResult, mode);
@@ -423,14 +423,14 @@ const TciController = (() => {
     const finalRate = last.infusionMgHr;
 
     const targetMetric = mode === 'bis'
-      ? { lbl: '目標 BIS', val: String(result.bisTarget), unit: '', cls: 'ce' }
-      : { lbl: '目標 Ce', val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
+      ? { lbl: 'Target BIS', val: String(result.bisTarget), unit: '', cls: 'ce' }
+      : { lbl: 'Target Ce', val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
     const metrics = [
-      { lbl: '負荷ボーラス', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
+      { lbl: 'Loading bolus', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
       targetMetric,
-      { lbl: '最終 注入速度', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
-      { lbl: '総投与量', val: result.totalDoseMg.toFixed(0), unit: 'mg', cls: 'met' },
-      { lbl: '最終 BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' }
+      { lbl: 'Final rate', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
+      { lbl: 'Total dose', val: result.totalDoseMg.toFixed(0), unit: 'mg', cls: 'met' },
+      { lbl: 'Final BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' }
     ];
     document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
@@ -438,22 +438,22 @@ const TciController = (() => {
     document.getElementById('tciDeepBisNotice').style.display = minBis < 50 ? '' : 'none';
 
     // concentration + BIS chart (incl. target Ce)
-    if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: '濃度 (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
+    if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
     chartConc.render(pts, [
-      { key: 'cp', label: 'Cp 親薬', color: CHART_COLORS.cpRemi, axis: 'left' },
+      { key: 'cp', label: 'Cp (parent)', color: CHART_COLORS.cpRemi, axis: 'left' },
       { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
-      { key: 'targetCe', label: '目標 Ce', color: CHART_COLORS.target, axis: 'left', dash: [5, 4] },
+      { key: 'targetCe', label: 'Target Ce', color: CHART_COLORS.target, axis: 'left', dash: [5, 4] },
       { key: 'cpMet', label: 'CNS7054', color: CHART_COLORS.cpMet, axis: 'left', dash: [2, 2] },
       { key: 'bis', label: 'BIS', color: CHART_COLORS.bis, axis: 'right' }
     ]);
 
     // infusion rate chart
-    if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: '注入速度 (mg/hr)', min: 0 } });
-    chartRate.render(pts, [{ key: 'infusionMgHr', label: '注入速度', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
+    if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: 'Infusion rate (mg/hr)', min: 0 } });
+    chartRate.render(pts, [{ key: 'infusionMgHr', label: 'Infusion rate', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
 
     // loading-bolus note
     document.getElementById('tciBolusNote').innerHTML =
-      `t=0 に <b>負荷ボーラス ${result.loadingBolusMg.toFixed(1)} mg</b>（中心区画を目標濃度に満たす量）を投与し、以降は血漿を目標に保つ注入速度で維持します。`;
+      `At t=0, give a <b>loading bolus of ${result.loadingBolusMg.toFixed(1)} mg</b> (0.1 mg/kg); thereafter the infusion rate maintains plasma at the target.`;
 
     // schedule table at clinical sample times
     const wanted = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60].filter(t => t <= pts[pts.length - 1].timeMin);

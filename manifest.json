@@ -2,7 +2,7 @@
   "name": "Remimazolam TCI Simulator (Eleveld 2025)",
   "short_name": "Remi TCI",
   "description": "Remimazolam PK-PD simulator (Eleveld 2025): effect-site concentration, predicted BIS and MOAA/S, with effect-site / BIS-target dosing planning.",
-  "lang": "ja",
+  "lang": "en",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

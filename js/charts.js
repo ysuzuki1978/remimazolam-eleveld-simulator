@@ -64,7 +64,7 @@ class MultiLineChart {
     const scales = {
       x: {
         type: 'linear',
-        title: { display: true, text: '時間 (min)', color: CHART_COLORS.text, font: { size: 11 } },
+        title: { display: true, text: 'Time (min)', color: CHART_COLORS.text, font: { size: 11 } },
         ticks: { color: CHART_COLORS.text, font: { size: 10 } },
         grid: { color: CHART_COLORS.grid }
       },
@@ -125,7 +125,7 @@ class RealtimeChart {
       options: baseLineOptions({
         x: {
           type: 'linear',
-          title: { display: true, text: '経過 (min)', color: CHART_COLORS.text, font: { size: 11 } },
+          title: { display: true, text: 'Elapsed (min)', color: CHART_COLORS.text, font: { size: 11 } },
           ticks: { color: CHART_COLORS.text, font: { size: 10 } },
           grid: { color: CHART_COLORS.grid }
         },

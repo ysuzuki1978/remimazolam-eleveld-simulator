@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
@@ -21,33 +21,33 @@
     <h1>Remimazolam TCI Simulator</h1>
     <div class="sub">Eleveld 2025 PK-PD model · Ce / BIS / MOAA/S</div>
     <div class="patient-summary">
-      <div class="info" id="patientInfo">患者未設定</div>
-      <button class="btn btn-ghost" id="editPatientBtn" style="padding:6px 12px;font-size:0.78rem;">患者編集</button>
+      <div class="info" id="patientInfo">No patient set</div>
+      <button class="btn btn-ghost" id="editPatientBtn" style="padding:6px 12px;font-size:0.78rem;">Edit patient</button>
     </div>
   </header>
 
   <main class="container">
     <div class="tabs" role="tablist">
-      <button class="tab active" data-panel="panel-induction">導入</button>
-      <button class="tab" data-panel="panel-tci">TCI / 投与計画</button>
-      <button class="tab" data-panel="panel-monitoring">モニタリング</button>
+      <button class="tab active" data-panel="panel-induction">Induction</button>
+      <button class="tab" data-panel="panel-tci">TCI / Dosing</button>
+      <button class="tab" data-panel="panel-monitoring">Monitoring</button>
     </div>
 
     <!-- ===== Induction ===== -->
     <section class="panel active" id="panel-induction">
       <div class="card">
-        <h2>リアルタイム導入シミュレーション</h2>
+        <h2>Real-time induction simulation</h2>
         <div class="grid-2">
           <div class="field">
-            <label for="indBolus">初回ボーラス (mg)</label>
+            <label for="indBolus">Initial bolus (mg)</label>
             <div class="stepper">
               <button type="button" data-step="-1" data-target="indBolus">−</button>
-              <input type="number" id="indBolus" value="10" min="0" max="100" step="1">
+              <input type="number" id="indBolus" value="7" min="0" max="100" step="1">
               <button type="button" data-step="1" data-target="indBolus">＋</button>
             </div>
           </div>
           <div class="field">
-            <label for="indCont">持続注入 (mg/hr)</label>
+            <label for="indCont">Continuous infusion (mg/hr)</label>
             <div class="stepper">
               <button type="button" data-step="-5" data-target="indCont">−</button>
               <input type="number" id="indCont" value="60" min="0" max="600" step="5">
@@ -55,32 +55,32 @@
             </div>
           </div>
         </div>
-        <p class="notice info">リアルタイム（実時間）で進行します。経過時間は実際の臨床時間に対応します。</p>
+        <p class="notice info">Runs in real time; elapsed time corresponds to actual clinical time.</p>
         <div class="btn-row">
-          <button class="btn btn-success" id="indStartBtn">開始</button>
-          <button class="btn btn-ghost" id="indPauseBtn" disabled>一時停止</button>
-          <button class="btn btn-ghost" id="indBolusBtn" disabled>追加ボーラス</button>
-          <button class="btn btn-primary" id="indRecordBtn" disabled>LOC 記録</button>
-          <button class="btn btn-danger" id="indResetBtn">リセット</button>
+          <button class="btn btn-success" id="indStartBtn">Start</button>
+          <button class="btn btn-ghost" id="indPauseBtn" disabled>Pause</button>
+          <button class="btn btn-ghost" id="indBolusBtn" disabled>Bolus</button>
+          <button class="btn btn-primary" id="indRecordBtn" disabled>Record LOC</button>
+          <button class="btn btn-danger" id="indResetBtn">Reset</button>
         </div>
       </div>
 
       <div class="card">
         <div class="metrics" id="indMetrics">
-          <div class="metric"><div class="val" id="indElapsed">0.0<span class="unit"> min</span></div><div class="lbl">経過</div></div>
-          <div class="metric cp"><div class="val" id="indCp">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Cp 親薬</div></div>
+          <div class="metric"><div class="val" id="indElapsed">0.0<span class="unit"> min</span></div><div class="lbl">Elapsed</div></div>
+          <div class="metric cp"><div class="val" id="indCp">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Cp (parent)</div></div>
           <div class="metric ce"><div class="val" id="indCe">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Ce (BIS)</div></div>
-          <div class="metric bis"><div class="val" id="indBis">93.7</div><div class="lbl">予測 BIS</div></div>
+          <div class="metric bis"><div class="val" id="indBis">93.7</div><div class="lbl">Predicted BIS</div></div>
           <div class="metric moaas"><div class="val" id="indMoaas">5.0<span class="unit"> /5</span></div><div class="lbl">MOAA/S</div></div>
         </div>
         <div class="chart-wrap"><canvas id="indChart"></canvas></div>
       </div>
 
       <div class="card" id="indLocCard" style="display:none;">
-        <h3>LOC スナップショット</h3>
+        <h3>LOC snapshots</h3>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>経過(min)</th><th>Cp(µg/mL)</th><th>Ce(µg/mL)</th><th>BIS</th><th>MOAA/S</th></tr></thead>
+            <thead><tr><th>Elapsed (min)</th><th>Cp (µg/mL)</th><th>Ce (µg/mL)</th><th>BIS</th><th>MOAA/S</th></tr></thead>
             <tbody id="indLocBody"></tbody>
           </table>
         </div>
@@ -90,23 +90,23 @@
     <!-- ===== TCI / dosing plan ===== -->
     <section class="panel" id="panel-tci">
       <div class="card">
-        <h2>TCI / 投与計画</h2>
+        <h2>TCI / Dosing plan</h2>
         <div class="notice info hidden" id="tciLocBanner" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <span id="tciLocText"></span>
-          <button class="btn btn-primary" id="tciLocApplyBtn" style="padding:6px 12px;white-space:nowrap;">目標Ceに設定</button>
+          <button class="btn btn-primary" id="tciLocApplyBtn" style="padding:6px 12px;white-space:nowrap;">Set as target Ce</button>
         </div>
         <div class="field">
-          <label>目標タイプ</label>
+          <label>Target type</label>
           <div class="radio-row">
-            <label><input type="radio" name="tciMode" value="ce" checked><span>効果部位 Ce 目標</span></label>
-            <label><input type="radio" name="tciMode" value="bis"><span>目標 BIS 維持</span></label>
+            <label><input type="radio" name="tciMode" value="ce" checked><span>Effect-site Ce target</span></label>
+            <label><input type="radio" name="tciMode" value="bis"><span>Maintain target BIS</span></label>
           </div>
         </div>
 
         <!-- Ce target controls -->
         <div id="tciCeControls">
           <div class="field">
-            <label for="tciCe">目標 効果部位 Ce (µg/mL)</label>
+            <label for="tciCe">Target effect-site Ce (µg/mL)</label>
             <div class="stepper">
               <button type="button" data-step="-0.05" data-target="tciCe">−</button>
               <input type="number" id="tciCe" value="0.86" min="0.05" max="3" step="0.05">
@@ -114,15 +114,15 @@
             </div>
           </div>
           <div class="btn-row" style="margin-bottom:6px;">
-            <button class="btn btn-ghost" type="button" data-ce="0.32" id="tciPresetSed">鎮静域 ≈0.32</button>
-            <button class="btn btn-ghost" type="button" data-ce="0.96" id="tciPresetAnae">麻酔域 ≈0.96</button>
+            <button class="btn btn-ghost" type="button" data-ce="0.32" id="tciPresetSed">Sedation ≈0.32</button>
+            <button class="btn btn-ghost" type="button" data-ce="0.96" id="tciPresetAnae">Anaesthesia ≈0.96</button>
           </div>
         </div>
 
         <!-- BIS target controls -->
         <div id="tciBisControls" style="display:none;">
           <div class="field">
-            <label for="tciBis">目標 BIS</label>
+            <label for="tciBis">Target BIS</label>
             <div class="stepper">
               <button type="button" data-step="-1" data-target="tciBis">−</button>
               <input type="number" id="tciBis" value="50" min="20" max="90" step="1">
@@ -134,36 +134,36 @@
             <button class="btn btn-ghost" type="button" data-bis="50" id="tciBis50">BIS 50</button>
             <button class="btn btn-ghost" type="button" data-bis="40" id="tciBis40">BIS 40</button>
           </div>
-          <p class="notice info">目標 BIS から必要な効果部位 Ce を逆算し、代謝物 (CNS7054) の蓄積に伴って必要 Ce・注入速度を漸増させ、BIS を一定に保ちます（耐性の再現）。</p>
+          <p class="notice info">Back-calculates the effect-site Ce required for the target BIS, and raises the required Ce / infusion rate as the metabolite (CNS7054) accumulates, holding BIS constant (tolerance).</p>
         </div>
 
         <div class="field">
-          <label for="tciDuration">計画時間 (min)</label>
+          <label for="tciDuration">Plan duration (min)</label>
           <input type="number" id="tciDuration" value="60" min="5" max="600" step="5">
         </div>
-        <button class="btn btn-primary btn-block" id="tciPlanBtn">投与計画を作成</button>
+        <button class="btn btn-primary btn-block" id="tciPlanBtn">Generate plan</button>
       </div>
 
       <div class="card" id="tciResultsCard" style="display:none;">
-        <h2>投与計画</h2>
+        <h2>Dosing plan</h2>
         <div class="metrics" id="tciMetrics"></div>
         <div class="notice warn" id="tciDeepBisNotice" style="display:none;">
-          BIS &lt; 50 域は集団予測にバイアスがあると著者が明記しています（ベンゾジアゼピンの天井効果）。深鎮静域の予測は参考値として扱ってください。
+          The authors note that population predictions are biased below BIS 50 (benzodiazepine ceiling effect). Treat predictions in the deep range as indicative only.
         </div>
-        <h3>濃度 と 予測 BIS</h3>
+        <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="tciChartConc"></canvas></div>
-        <h3>注入速度</h3>
+        <h3>Infusion rate</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="tciChartRate"></canvas></div>
-        <h3>投与スケジュール</h3>
+        <h3>Dosing schedule</h3>
         <p class="notice info" id="tciBolusNote"></p>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>時刻(min)</th><th>ボーラス(mg)</th><th>注入速度(mg/hr)</th><th>目標Ce</th><th>Ce(BIS)</th><th>BIS</th></tr></thead>
+            <thead><tr><th>Time (min)</th><th>Bolus (mg)</th><th>Rate (mg/hr)</th><th>Target Ce</th><th>Ce (BIS)</th><th>BIS</th></tr></thead>
             <tbody id="tciScheduleBody"></tbody>
           </table>
         </div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-ghost" id="tciCsvBtn">CSV 出力</button>
+          <button class="btn btn-ghost" id="tciCsvBtn">Export CSV</button>
         </div>
       </div>
     </section>
@@ -171,42 +171,42 @@
     <!-- ===== Monitoring ===== -->
     <section class="panel" id="panel-monitoring">
       <div class="card">
-        <h2>モニタリング（投与イベント → 時系列）</h2>
+        <h2>Monitoring (dose events → time course)</h2>
         <div class="grid-2">
           <div class="field">
-            <label for="monDuration">シミュレーション時間 (min)</label>
+            <label for="monDuration">Simulation duration (min)</label>
             <input type="number" id="monDuration" value="60" min="1" max="600" step="1">
           </div>
           <div class="field">
             <label>&nbsp;</label>
-            <button class="btn btn-ghost btn-block" id="monAddEventBtn">＋ 投与イベント追加</button>
+            <button class="btn btn-ghost btn-block" id="monAddEventBtn">+ Add dose event</button>
           </div>
         </div>
-        <h3>投与イベント</h3>
+        <h3>Dose events</h3>
         <div class="tbl-wrap">
           <table class="tbl" id="monEventsTable">
             <thead>
-              <tr><th>時刻(min)</th><th>ボーラス(mg)</th><th>持続(mg/hr)</th><th></th></tr>
+              <tr><th>Time (min)</th><th>Bolus (mg)</th><th>Continuous (mg/hr)</th><th></th></tr>
             </thead>
             <tbody id="monEventsBody"></tbody>
           </table>
         </div>
-        <p class="notice info" id="monEventsEmpty">投与イベントがありません。「＋ 投与イベント追加」から登録してください（持続は、その時刻以降の注入速度を設定します）。</p>
+        <p class="notice info" id="monEventsEmpty">No dose events yet. Add one with "+ Add dose event" (the continuous rate sets the infusion from that time onward).</p>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary" id="monRunBtn">シミュレーション実行</button>
-          <button class="btn btn-ghost" id="monCsvBtn" disabled>CSV 出力</button>
+          <button class="btn btn-primary" id="monRunBtn">Run simulation</button>
+          <button class="btn btn-ghost" id="monCsvBtn" disabled>Export CSV</button>
         </div>
       </div>
 
       <div class="card" id="monResultsCard" style="display:none;">
-        <h2>結果</h2>
+        <h2>Results</h2>
         <div class="metrics" id="monMetrics"></div>
         <div class="notice warn" id="monDeepBisNotice" style="display:none;">
-          BIS &lt; 50 域は集団予測にバイアスがあると著者が明記しています（ベンゾジアゼピンの天井効果）。深鎮静域の予測は参考値として扱ってください。
+          The authors note that population predictions are biased below BIS 50 (benzodiazepine ceiling effect). Treat predictions in the deep range as indicative only.
         </div>
-        <h3>濃度 と 予測 BIS</h3>
+        <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="monChartConc"></canvas></div>
-        <h3>確率加重 MOAA/S（鎮静スコア）</h3>
+        <h3>Probability-weighted MOAA/S (sedation score)</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="monChartMoaas"></canvas></div>
       </div>
     </section>
@@ -218,65 +218,65 @@
       doi:10.1016/j.bja.2025.02.038 (CC BY 4.0)
     </div>
     <div>
-      研究・教育目的のシミュレータです。臨床判断・実際の投与に使用しないでください。
+      Research/education simulator. Not for clinical decisions or actual drug administration.
     </div>
-    <div>Software: Apache-2.0 · v1.2.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Software: Apache-2.0 · v1.3.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
   </footer>
 
   <!-- ===== Patient editor modal ===== -->
   <div class="modal-backdrop" id="patientModal">
     <div class="modal">
-      <h2>患者情報</h2>
+      <h2>Patient</h2>
       <div class="field">
-        <label for="pId">患者 ID</label>
+        <label for="pId">Patient ID</label>
         <input type="text" id="pId" value="patient-1">
       </div>
       <div class="grid-2">
         <div class="field">
-          <label for="pAge">年齢 (歳)</label>
+          <label for="pAge">Age (yr)</label>
           <input type="number" id="pAge" value="35" min="1" max="100">
         </div>
         <div class="field">
-          <label for="pWeight">体重 (kg)</label>
+          <label for="pWeight">Weight (kg)</label>
           <input type="number" id="pWeight" value="70" min="5" max="250" step="0.1">
         </div>
       </div>
       <div class="field">
-        <label for="pHeight">身長 (cm) — BMI 表示用（PK には未使用）</label>
+        <label for="pHeight">Height (cm) — for BMI display only (not used in PK)</label>
         <input type="number" id="pHeight" value="170" min="30" max="250" step="0.1">
       </div>
       <div class="field">
-        <label>性別</label>
+        <label>Sex</label>
         <div class="radio-row">
-          <label><input type="radio" name="pSex" value="male" checked><span>男性</span></label>
-          <label><input type="radio" name="pSex" value="female"><span>女性</span></label>
+          <label><input type="radio" name="pSex" value="male" checked><span>Male</span></label>
+          <label><input type="radio" name="pSex" value="female"><span>Female</span></label>
         </div>
       </div>
       <div class="field">
-        <label>オピオイド併用</label>
+        <label>Opioid co-administration</label>
         <div class="radio-row">
-          <label><input type="radio" name="pOpioid" value="no" checked><span>なし</span></label>
-          <label><input type="radio" name="pOpioid" value="yes"><span>あり</span></label>
+          <label><input type="radio" name="pOpioid" value="no" checked><span>No</span></label>
+          <label><input type="radio" name="pOpioid" value="yes"><span>Yes</span></label>
         </div>
       </div>
       <div class="field">
-        <label for="pHepatic">肝機能</label>
+        <label for="pHepatic">Hepatic function</label>
         <select id="pHepatic">
-          <option value="normal">正常</option>
-          <option value="severe">高度肝障害 (Pugh-Child &gt; 8)</option>
+          <option value="normal">Normal</option>
+          <option value="severe">Severe (Pugh-Child &gt; 8)</option>
         </select>
       </div>
       <div class="field">
-        <label for="pRenal">腎機能</label>
+        <label for="pRenal">Renal function</label>
         <select id="pRenal">
-          <option value="normal">正常</option>
-          <option value="esrd">末期腎不全 (ESRD)</option>
+          <option value="normal">Normal</option>
+          <option value="esrd">ESRD</option>
         </select>
       </div>
       <div id="patientErrors" class="notice danger hidden"></div>
       <div class="modal-footer">
-        <button class="btn btn-ghost btn-block" id="patientCancelBtn">キャンセル</button>
-        <button class="btn btn-primary btn-block" id="patientSaveBtn">保存</button>
+        <button class="btn btn-ghost btn-block" id="patientCancelBtn">Cancel</button>
+        <button class="btn btn-primary btn-block" id="patientSaveBtn">Save</button>
       </div>
     </div>
   </div>
@@ -284,33 +284,33 @@
   <!-- ===== Dose event modal ===== -->
   <div class="modal-backdrop" id="doseEventModal">
     <div class="modal">
-      <h2>投与イベント</h2>
+      <h2>Dose event</h2>
       <div class="field">
-        <label for="evTime">時刻 (min) — 麻酔開始からの経過</label>
+        <label for="evTime">Time (min) — from anaesthesia start</label>
         <input type="number" id="evTime" value="0" min="0" step="0.5">
       </div>
       <div class="field">
-        <label for="evBolus">ボーラス (mg)</label>
+        <label for="evBolus">Bolus (mg)</label>
         <input type="number" id="evBolus" value="0" min="0" step="0.5">
       </div>
       <div class="field">
-        <label for="evCont">持続注入 (mg/hr) — この時刻以降の注入速度</label>
+        <label for="evCont">Continuous infusion (mg/hr) — rate from this time</label>
         <input type="number" id="evCont" value="0" min="0" step="0.5">
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost btn-block" id="evCancelBtn">キャンセル</button>
-        <button class="btn btn-primary btn-block" id="evSaveBtn">追加</button>
+        <button class="btn btn-ghost btn-block" id="evCancelBtn">Cancel</button>
+        <button class="btn btn-primary btn-block" id="evSaveBtn">Add</button>
       </div>
     </div>
   </div>
 
   <!-- ===== PWA update banner ===== -->
   <div id="updateBanner" class="update-banner hidden">
-    新しいバージョンがあります
-    <button id="updateReloadBtn" style="margin-left:10px;padding:5px 14px;border:none;border-radius:8px;background:#06121b;color:#fff;font-weight:600;cursor:pointer;">更新</button>
+    A new version is available
+    <button id="updateReloadBtn" style="margin-left:10px;padding:5px 14px;border:none;border-radius:8px;background:#06121b;color:#fff;font-weight:600;cursor:pointer;">Update</button>
   </div>
 
-  <!-- ===== Scripts (grow per sprint) ===== -->
+  <!-- ===== Scripts ===== -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="js/models.js"></script>
   <script src="js/remimazolam-eleveld-pkpd.js"></script>
