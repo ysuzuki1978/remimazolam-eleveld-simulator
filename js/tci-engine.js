@@ -24,15 +24,6 @@ const TciEngine = (() => {
   const DT = 0.01;          // integration step (min)
   const DEFAULT_CTRL = 0.1; // control update interval (min, ~6 s)
 
-  /** Peak BIS effect-site concentration for a 1 mg bolus (no infusion). */
-  function unitBolusPeakCeBis(params, horizonMin = 30) {
-    let y = M.bolus(M.createInitialState(), 1);
-    let peak = 0;
-    const n = Math.round(horizonMin / DT);
-    for (let i = 0; i < n; i++) { y = M.step(y, 0, DT, params); if (y[7] > peak) peak = y[7]; }
-    return peak;
-  }
-
   /** Plasma response at end of one control interval to a unit (1 mg/min) rate. */
   function infusionSensitivity(params, dtCtrl) {
     let y = M.createInitialState();
@@ -50,12 +41,19 @@ const TciEngine = (() => {
   }
 
   /**
-   * General planner.
+   * General planner (plasma-target TCI).
+   *
+   * A small loading bolus fills the central compartment to the initial target
+   * (loadingBolus = targetCe0 · V1), so plasma starts AT the target — no
+   * implausible spike. Each control interval then clamps plasma at the
+   * (possibly time-varying) target via the predictive infusion rate; the
+   * effect-site concentration follows with its ke0 lag.
+   *
    * @param {Patient} patient
    * @param {(timeMin:number, obs:Object, params:Object)=>number} targetCeFn
-   *        desired plasma/effect-site clamp (µg/mL) at a given time
+   *        desired plasma/effect-site target (µg/mL) at a given time
    * @param {Object} [opts] { duration=60, dtCtrl=0.1, maxMgHr=1200, sampleInterval=0.5 }
-   * @returns {{params, loadingBolusMg, points: Object[]}}
+   * @returns {{params, loadingBolusMg, peakRateMgHr, totalDoseMg, points: Object[]}}
    */
   function plan(patient, targetCeFn, opts = {}) {
     const params = M.computeParameters(patient);
@@ -63,15 +61,16 @@ const TciEngine = (() => {
     const dtCtrl = opts.dtCtrl != null ? opts.dtCtrl : DEFAULT_CTRL;
     const rMax = (opts.maxMgHr != null ? opts.maxMgHr : 1200) / 60;
     const sampleInterval = opts.sampleInterval != null ? opts.sampleInterval : 0.5;
+    const s = infusionSensitivity(params, dtCtrl);
 
-    const peakUnit = unitBolusPeakCeBis(params);
     const obs0 = M.observe(M.createInitialState(), params);
     const targetCe0 = targetCeFn(0, obs0, params);
-    const loadingBolusMg = peakUnit > 0 ? targetCe0 / peakUnit : 0;
-    const s = infusionSensitivity(params, dtCtrl);
+    const loadingBolusMg = targetCe0 * params.V1;   // fill central compartment to target
 
     let y = M.bolus(M.createInitialState(), loadingBolusMg);
     const points = [];
+    let totalDoseMg = loadingBolusMg;
+    let peakRateMgHr = 0;
     const totalCtrl = Math.round(duration / dtCtrl);
     const sampleEvery = Math.max(1, Math.round(sampleInterval / dtCtrl));
 
@@ -83,15 +82,20 @@ const TciEngine = (() => {
       const cpHomog = predictCpHomog(y, params, dtCtrl);
       let r = (targetCe - cpHomog) / s;        // mg/min
       if (r < 0) r = 0; else if (r > rMax) r = rMax;
+      const rHr = r * 60;
+      if (rHr > peakRateMgHr) peakRateMgHr = rHr;
 
-      if (c % sampleEvery === 0) points.push({ timeMin: tMin, infusionMgHr: r * 60, targetCe, ...obs });
+      if (c % sampleEvery === 0) {
+        points.push({ timeMin: tMin, infusionMgHr: rHr, targetCe, bolusMg: c === 0 ? loadingBolusMg : 0, ...obs });
+      }
 
       if (c < totalCtrl) {
         const steps = Math.round(dtCtrl / DT);
         for (let i = 0; i < steps; i++) y = M.step(y, r, DT, params);
+        totalDoseMg += r * dtCtrl;
       }
     }
-    return { params, loadingBolusMg, peakUnit, points };
+    return { params, loadingBolusMg, peakRateMgHr, totalDoseMg, points };
   }
 
   /** Constant effect-site Ce target (µg/mL). */
@@ -109,7 +113,7 @@ const TciEngine = (() => {
     return r;
   }
 
-  return { plan, planCeTarget, planBisTarget, unitBolusPeakCeBis };
+  return { plan, planCeTarget, planBisTarget };
 })();
 
 if (typeof window !== 'undefined') window.TciEngine = TciEngine;

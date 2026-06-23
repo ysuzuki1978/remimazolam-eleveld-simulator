@@ -275,7 +275,6 @@ const InductionController = (() => {
       const cont = parseFloat(document.getElementById('indCont').value) || 0;
       ensureChart();
       chart.reset();
-      engine.speedMult = parseInt(document.getElementById('indSpeed').value, 10) || 30;
       engine.prepare(patient, bolus, cont);
     } else {
       // resume: pick up any continuous-rate change
@@ -330,7 +329,6 @@ const InductionController = (() => {
     document.getElementById('indBolusBtn').addEventListener('click', giveBolus);
     document.getElementById('indRecordBtn').addEventListener('click', record);
     document.getElementById('indResetBtn').addEventListener('click', reset);
-    document.getElementById('indSpeed').addEventListener('change', (e) => engine.setSpeed(parseInt(e.target.value, 10) || 30));
     document.getElementById('indCont').addEventListener('change', (e) => engine.setContinuous(parseFloat(e.target.value) || 0));
     // reset induction when patient changes
     App.onPatientChange(() => reset());
@@ -392,8 +390,8 @@ const TciController = (() => {
       { lbl: '負荷ボーラス', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
       targetMetric,
       { lbl: '最終 注入速度', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
-      { lbl: '最終 BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' },
-      { lbl: '最終 MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '/5', cls: 'moaas' }
+      { lbl: '総投与量', val: result.totalDoseMg.toFixed(0), unit: 'mg', cls: 'met' },
+      { lbl: '最終 BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' }
     ];
     document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
@@ -414,12 +412,17 @@ const TciController = (() => {
     if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: '注入速度 (mg/hr)', min: 0 } });
     chartRate.render(pts, [{ key: 'infusionMgHr', label: '注入速度', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
 
+    // loading-bolus note
+    document.getElementById('tciBolusNote').innerHTML =
+      `t=0 に <b>負荷ボーラス ${result.loadingBolusMg.toFixed(1)} mg</b>（中心区画を目標濃度に満たす量）を投与し、以降は血漿を目標に保つ注入速度で維持します。`;
+
     // schedule table at clinical sample times
     const wanted = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60].filter(t => t <= pts[pts.length - 1].timeMin);
     const body = document.getElementById('tciScheduleBody');
     body.innerHTML = wanted.map(t => {
       const p = pts.reduce((a, b) => Math.abs(b.timeMin - t) < Math.abs(a.timeMin - t) ? b : a);
-      return `<tr><td>${t}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${p.ceBis.toFixed(3)}</td><td>${p.bis.toFixed(1)}</td></tr>`;
+      const bolus = t === 0 ? result.loadingBolusMg.toFixed(1) : '—';
+      return `<tr><td>${t}</td><td>${bolus}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${p.ceBis.toFixed(3)}</td><td>${p.bis.toFixed(1)}</td></tr>`;
     }).join('');
   }
 
