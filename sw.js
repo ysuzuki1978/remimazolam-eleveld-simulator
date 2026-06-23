@@ -3,7 +3,7 @@
  * Cache-first for local assets, network-first for the Chart.js CDN.
  */
 
-const CACHE_NAME = 'remimazolam-eleveld-v1.2.0';
+const CACHE_NAME = 'remimazolam-eleveld-v1.3.0';
 
 const LOCAL_ASSETS = [
   './',
@@ -50,7 +50,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// The page posts this when the user taps "更新"; activate the waiting worker.
+// The page posts this when the user taps "Update"; activate the waiting worker.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

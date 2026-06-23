@@ -18,7 +18,7 @@ const SexType = Object.freeze({
   FEMALE: 'female',
   // NONMEM dummy: M1F2 (male=1, female=2)
   toM1F2(sex) { return sex === SexType.FEMALE ? 2 : 1; },
-  displayName(sex) { return sex === SexType.FEMALE ? '女性' : '男性'; }
+  displayName(sex) { return sex === SexType.FEMALE ? 'Female' : 'Male'; }
 });
 
 const HepaticFunction = Object.freeze({
@@ -26,7 +26,7 @@ const HepaticFunction = Object.freeze({
   SEVERE: 'severe',        // Pugh-Child score > 8
   // NONMEM dummy: P1GT8 (<=8 -> 1, >8 -> 2)
   toP1GT8(h) { return h === HepaticFunction.SEVERE ? 2 : 1; },
-  displayName(h) { return h === HepaticFunction.SEVERE ? '高度肝障害 (Pugh-Child > 8)' : '正常'; }
+  displayName(h) { return h === HepaticFunction.SEVERE ? 'Severe (Pugh-Child > 8)' : 'Normal'; }
 });
 
 const RenalFunction = Object.freeze({
@@ -34,7 +34,7 @@ const RenalFunction = Object.freeze({
   ESRD: 'esrd',            // end-stage renal disease
   // NONMEM dummy: H1ESRD2 (normal -> 1, ESRD -> 2)
   toH1ESRD2(r) { return r === RenalFunction.ESRD ? 2 : 1; },
-  displayName(r) { return r === RenalFunction.ESRD ? '末期腎不全 (ESRD)' : '正常'; }
+  displayName(r) { return r === RenalFunction.ESRD ? 'ESRD' : 'Normal'; }
 });
 
 const OpioidStatus = Object.freeze({
@@ -42,7 +42,7 @@ const OpioidStatus = Object.freeze({
   PRESENT: true,
   // NONMEM dummy: OA1P2 (absent -> 1, present -> 2)
   toOA1P2(present) { return present ? 2 : 1; },
-  displayName(present) { return present ? '併用あり' : '併用なし'; }
+  displayName(present) { return present ? 'Present' : 'Absent'; }
 });
 
 /* ------------------------------------------------------------------ */
@@ -93,16 +93,16 @@ class Patient {
   validate() {
     const errors = [];
     if (!Number.isFinite(this.age) || this.age < 1 || this.age > 100) {
-      errors.push('年齢は 1〜100 歳で入力してください');
+      errors.push('Age must be between 1 and 100 years');
     }
     if (!Number.isFinite(this.weight) || this.weight < 5 || this.weight > 250) {
-      errors.push('体重は 5〜250 kg で入力してください');
+      errors.push('Weight must be between 5 and 250 kg');
     }
     if (this.height != null && (this.height < 30 || this.height > 250)) {
-      errors.push('身長は 30〜250 cm で入力してください');
+      errors.push('Height must be between 30 and 250 cm');
     }
     if (![SexType.MALE, SexType.FEMALE].includes(this.sex)) {
-      errors.push('性別が不正です');
+      errors.push('Invalid sex');
     }
     return { isValid: errors.length === 0, errors };
   }
