@@ -6,7 +6,8 @@
 
 HTML / JavaScript / PWA で実装され、ビルド不要・オフライン動作します。
 
-🔗 **Live:** https://github.com/ysuzuki1978/remimazolam-eleveld-simulator
+🔗 **Live (PWA):** https://ysuzuki1978.github.io/remimazolam-eleveld-simulator/
+&nbsp;·&nbsp; **Source:** https://github.com/ysuzuki1978/remimazolam-eleveld-simulator
 
 > ⚠️ **研究・教育目的のシミュレータです。臨床判断や実際の薬剤投与には使用しないでください。**
 
