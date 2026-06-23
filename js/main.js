@@ -11,10 +11,18 @@ const App = (() => {
   let patient = null;
   const patientListeners = [];
 
+  /** LOC effect-site Ce recorded in induction (µg/mL), shared with the TCI tab. */
+  let locCe = null;
+  const locCeListeners = [];
+
   /* -------- pub/sub -------- */
   function onPatientChange(fn) { patientListeners.push(fn); }
   function emitPatientChange() { patientListeners.forEach(fn => { try { fn(patient); } catch (e) { console.error(e); } }); }
   function getPatient() { return patient; }
+
+  function onLocCeChange(fn) { locCeListeners.push(fn); }
+  function setLocCe(ce) { locCe = ce; locCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
+  function getLocCe() { return locCe; }
 
   /* -------- patient summary -------- */
   function renderPatientSummary() {
@@ -119,7 +127,7 @@ const App = (() => {
     emitPatientChange();
   }
 
-  return { init, getPatient, onPatientChange };
+  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe };
 })();
 
 /* ================================================================== */
@@ -296,6 +304,14 @@ const InductionController = (() => {
     if (!s) return;
     locSnapshots.push({ t: engine.elapsedMin, cp: s.cp, ce: s.ceBis, bis: s.bis, moaas: s.moaasWeighted });
     renderLoc();
+    // share the latest LOC effect-site Ce with the TCI tab
+    App.setLocCe(s.ceBis);
+  }
+
+  // default induction bolus = 0.1 mg/kg of the current patient
+  function applyDefaultBolus() {
+    const p = App.getPatient();
+    if (p && p.weight) document.getElementById('indBolus').value = (0.1 * p.weight).toFixed(1);
   }
 
   function renderLoc() {
@@ -311,6 +327,8 @@ const InductionController = (() => {
     engine.elapsedMin = 0;
     locSnapshots.length = 0;
     renderLoc();
+    App.setLocCe(null);
+    applyDefaultBolus();
     if (chart) chart.reset();
     document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
     document.getElementById('indCp').innerHTML = '0.00<span class="unit"> µg/mL</span>';
@@ -332,6 +350,7 @@ const InductionController = (() => {
     document.getElementById('indCont').addEventListener('change', (e) => engine.setContinuous(parseFloat(e.target.value) || 0));
     // reset induction when patient changes
     App.onPatientChange(() => reset());
+    applyDefaultBolus();
   }
 
   return { init };
@@ -345,10 +364,30 @@ document.addEventListener('DOMContentLoaded', () => InductionController.init());
 const TciController = (() => {
   let chartConc = null, chartRate = null;
   let lastResult = null, lastMode = 'ce';
+  const LOC_MARGIN = 0.15;   // target Ce = LOC Ce + 0.15 µg/mL
 
   function currentMode() {
     const el = document.querySelector('input[name="tciMode"]:checked');
     return el ? el.value : 'ce';
+  }
+
+  // LOC -> dosing-plan transfer banner
+  function updateLocBanner() {
+    const banner = document.getElementById('tciLocBanner');
+    const loc = App.getLocCe();
+    if (loc == null) { banner.classList.add('hidden'); return; }
+    const tgt = loc + LOC_MARGIN;
+    document.getElementById('tciLocText').innerHTML =
+      `導入で記録した LOC 効果部位 Ce = <b>${loc.toFixed(3)}</b> µg/mL → 目標 <b>${tgt.toFixed(2)}</b> µg/mL (LOC + ${LOC_MARGIN})`;
+    banner.classList.remove('hidden');
+  }
+  function applyLoc() {
+    const loc = App.getLocCe();
+    if (loc == null) return;
+    document.querySelector('input[name="tciMode"][value="ce"]').checked = true;
+    syncModeUI();
+    document.getElementById('tciCe').value = (loc + LOC_MARGIN).toFixed(2);
+    plan();
   }
 
   function syncModeUI() {
@@ -449,7 +488,12 @@ const TciController = (() => {
       b.addEventListener('click', () => { document.getElementById('tciCe').value = b.dataset.ce; }));
     document.querySelectorAll('#tciBisControls [data-bis]').forEach(b =>
       b.addEventListener('click', () => { document.getElementById('tciBis').value = b.dataset.bis; }));
+    document.getElementById('tciLocApplyBtn').addEventListener('click', applyLoc);
+    App.onLocCeChange(updateLocBanner);
+    // refresh the LOC banner whenever the TCI tab is opened
+    document.querySelector('.tab[data-panel="panel-tci"]').addEventListener('click', updateLocBanner);
     syncModeUI();
+    updateLocBanner();
   }
 
   return { init };
