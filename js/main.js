@@ -342,6 +342,119 @@ const InductionController = (() => {
 document.addEventListener('DOMContentLoaded', () => InductionController.init());
 
 /* ================================================================== */
+/* TCI / dosing-plan controller (S5 effect-site Ce + S6 BIS target)    */
+/* ================================================================== */
+const TciController = (() => {
+  let chartConc = null, chartRate = null;
+  let lastResult = null, lastMode = 'ce';
+
+  function currentMode() {
+    const el = document.querySelector('input[name="tciMode"]:checked');
+    return el ? el.value : 'ce';
+  }
+
+  function syncModeUI() {
+    const mode = currentMode();
+    document.getElementById('tciCeControls').style.display = mode === 'ce' ? '' : 'none';
+    document.getElementById('tciBisControls').style.display = mode === 'bis' ? '' : 'none';
+  }
+
+  function plan() {
+    const patient = App.getPatient();
+    if (!patient) return;
+    const mode = currentMode();
+    const duration = Math.max(5, parseFloat(document.getElementById('tciDuration').value) || 60);
+    if (mode === 'ce') {
+      const ce = parseFloat(document.getElementById('tciCe').value) || 0.5;
+      lastResult = TciEngine.planCeTarget(patient, ce, { duration, sampleInterval: 0.5 });
+      lastResult.label = `効果部位 Ce 目標 ${ce.toFixed(2)} µg/mL`;
+    } else {
+      const bis = parseFloat(document.getElementById('tciBis').value) || 50;
+      lastResult = TciEngine.planBisTarget(patient, bis, { duration, sampleInterval: 0.5 });
+      lastResult.label = `目標 BIS ${bis}`;
+    }
+    lastMode = mode;
+    render(lastResult, mode);
+  }
+
+  function render(result, mode) {
+    document.getElementById('tciResultsCard').style.display = '';
+    const pts = result.points;
+    const last = pts[pts.length - 1];
+    const minBis = Math.min(...pts.map(p => p.bis));
+    const rates = pts.filter(p => p.timeMin > 0).map(p => p.infusionMgHr);
+    const finalRate = last.infusionMgHr;
+
+    const targetMetric = mode === 'bis'
+      ? { lbl: '目標 BIS', val: String(result.bisTarget), unit: '', cls: 'ce' }
+      : { lbl: '目標 Ce', val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
+    const metrics = [
+      { lbl: '負荷ボーラス', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
+      targetMetric,
+      { lbl: '最終 注入速度', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
+      { lbl: '最終 BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' },
+      { lbl: '最終 MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '/5', cls: 'moaas' }
+    ];
+    document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
+      `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
+    ).join('');
+    document.getElementById('tciDeepBisNotice').style.display = minBis < 50 ? '' : 'none';
+
+    // concentration + BIS chart (incl. target Ce)
+    if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: '濃度 (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
+    chartConc.render(pts, [
+      { key: 'cp', label: 'Cp 親薬', color: CHART_COLORS.cpRemi, axis: 'left' },
+      { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
+      { key: 'targetCe', label: '目標 Ce', color: CHART_COLORS.target, axis: 'left', dash: [5, 4] },
+      { key: 'cpMet', label: 'CNS7054', color: CHART_COLORS.cpMet, axis: 'left', dash: [2, 2] },
+      { key: 'bis', label: 'BIS', color: CHART_COLORS.bis, axis: 'right' }
+    ]);
+
+    // infusion rate chart
+    if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: '注入速度 (mg/hr)', min: 0 } });
+    chartRate.render(pts, [{ key: 'infusionMgHr', label: '注入速度', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
+
+    // schedule table at clinical sample times
+    const wanted = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60].filter(t => t <= pts[pts.length - 1].timeMin);
+    const body = document.getElementById('tciScheduleBody');
+    body.innerHTML = wanted.map(t => {
+      const p = pts.reduce((a, b) => Math.abs(b.timeMin - t) < Math.abs(a.timeMin - t) ? b : a);
+      return `<tr><td>${t}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${p.ceBis.toFixed(3)}</td><td>${p.bis.toFixed(1)}</td></tr>`;
+    }).join('');
+  }
+
+  function exportCsv() {
+    if (!lastResult) return;
+    const patient = App.getPatient();
+    const tps = lastResult.points.map(p => new TimePoint({
+      timeMin: p.timeMin, cpRemi: p.cp, ceBis: p.ceBis, ceMoaas: p.ceMoaas,
+      cpMet: p.cpMet, bis: p.bis, moaasWeighted: p.moaasWeighted, infusionMgHr: p.infusionMgHr
+    }));
+    const res = new SimulationResult(patient, tps, { mode: `tci:${lastResult.label}` });
+    const blob = new Blob([res.toCSV()], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `remimazolam_tci_${patient.id}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function init() {
+    document.querySelectorAll('input[name="tciMode"]').forEach(r => r.addEventListener('change', syncModeUI));
+    document.getElementById('tciPlanBtn').addEventListener('click', plan);
+    document.getElementById('tciCsvBtn').addEventListener('click', exportCsv);
+    document.querySelectorAll('#tciCeControls [data-ce]').forEach(b =>
+      b.addEventListener('click', () => { document.getElementById('tciCe').value = b.dataset.ce; }));
+    document.querySelectorAll('#tciBisControls [data-bis]').forEach(b =>
+      b.addEventListener('click', () => { document.getElementById('tciBis').value = b.dataset.bis; }));
+    syncModeUI();
+  }
+
+  return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', () => TciController.init());
+
+/* ================================================================== */
 /* Stepper controls (shared)                                           */
 /* ================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
