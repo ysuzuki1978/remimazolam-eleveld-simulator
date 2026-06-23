@@ -6,7 +6,9 @@
   "author": "Yasuyuki Suzuki",
   "scripts": {
     "serve": "python3 -m http.server 8000",
-    "validate": "node validation/validate-model.js"
+    "validate": "node validation/validate-model.js && node validation/validate-tci.js",
+    "validate:model": "node validation/validate-model.js",
+    "validate:tci": "node validation/validate-tci.js"
   },
   "repository": {
     "type": "git",
