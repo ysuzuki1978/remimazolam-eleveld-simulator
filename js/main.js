@@ -476,10 +476,45 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* -------- service worker -------- */
-if ('serviceWorker' in navigator) {
+/* -------- service worker + update detection -------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  let userInitiatedUpdate = false;
+
+  const showUpdateBanner = (reg) => {
+    const banner = document.getElementById('updateBanner');
+    if (!banner) return;
+    banner.classList.remove('hidden');
+    document.getElementById('updateReloadBtn').onclick = () => {
+      userInitiatedUpdate = true;
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      else window.location.reload();
+    };
+  };
+
+  // When the new worker takes control (after SKIP_WAITING), reload into it.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (userInitiatedUpdate) window.location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // a new version was already downloaded and is waiting
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
+
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          // installed + an existing controller => this is an update, not first install
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(reg);
+        });
+      });
+
+      // check for updates on load and hourly, and when the tab regains focus
+      reg.update();
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); });
+    }).catch((err) => console.warn('SW registration failed:', err));
   });
 }
 

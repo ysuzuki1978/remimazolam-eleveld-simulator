@@ -3,7 +3,7 @@
  * Cache-first for local assets, network-first for the Chart.js CDN.
  */
 
-const CACHE_NAME = 'remimazolam-eleveld-v1.0.1';
+const CACHE_NAME = 'remimazolam-eleveld-v1.1.0';
 
 const LOCAL_ASSETS = [
   './',
@@ -34,7 +34,9 @@ self.addEventListener('install', (event) => {
           cache.add(url).catch((err) => console.warn('[SW] cache skip:', url, err))
         )
       );
-    }).then(() => self.skipWaiting())
+    })
+    // Do NOT skipWaiting automatically: a new version waits until the user
+    // accepts the in-app update banner (which posts SKIP_WAITING).
   );
 });
 
@@ -46,6 +48,11 @@ self.addEventListener('activate', (event) => {
       )
     ).then(() => self.clients.claim())
   );
+});
+
+// The page posts this when the user taps "更新"; activate the waiting worker.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
