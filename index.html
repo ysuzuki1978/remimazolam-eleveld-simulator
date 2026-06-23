@@ -98,7 +98,75 @@
     <section class="panel" id="panel-tci">
       <div class="card">
         <h2>TCI / 投与計画</h2>
-        <p class="notice info" id="tciPlaceholder">S5（効果部位 Ce 目標）・S6（目標 BIS 維持）で実装予定。</p>
+        <div class="field">
+          <label>目標タイプ</label>
+          <div class="radio-row">
+            <label><input type="radio" name="tciMode" value="ce" checked><span>効果部位 Ce 目標</span></label>
+            <label><input type="radio" name="tciMode" value="bis"><span>目標 BIS 維持</span></label>
+          </div>
+        </div>
+
+        <!-- Ce target controls -->
+        <div id="tciCeControls">
+          <div class="field">
+            <label for="tciCe">目標 効果部位 Ce (µg/mL)</label>
+            <div class="stepper">
+              <button type="button" data-step="-0.05" data-target="tciCe">−</button>
+              <input type="number" id="tciCe" value="0.86" min="0.05" max="3" step="0.05">
+              <button type="button" data-step="0.05" data-target="tciCe">＋</button>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-bottom:6px;">
+            <button class="btn btn-ghost" type="button" data-ce="0.32" id="tciPresetSed">鎮静域 ≈0.32</button>
+            <button class="btn btn-ghost" type="button" data-ce="0.96" id="tciPresetAnae">麻酔域 ≈0.96</button>
+          </div>
+        </div>
+
+        <!-- BIS target controls -->
+        <div id="tciBisControls" style="display:none;">
+          <div class="field">
+            <label for="tciBis">目標 BIS</label>
+            <div class="stepper">
+              <button type="button" data-step="-1" data-target="tciBis">−</button>
+              <input type="number" id="tciBis" value="50" min="20" max="90" step="1">
+              <button type="button" data-step="1" data-target="tciBis">＋</button>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-bottom:6px;">
+            <button class="btn btn-ghost" type="button" data-bis="60" id="tciBis60">BIS 60</button>
+            <button class="btn btn-ghost" type="button" data-bis="50" id="tciBis50">BIS 50</button>
+            <button class="btn btn-ghost" type="button" data-bis="40" id="tciBis40">BIS 40</button>
+          </div>
+          <p class="notice info">目標 BIS から必要な効果部位 Ce を逆算し、代謝物 (CNS7054) の蓄積に伴って必要 Ce・注入速度を漸増させ、BIS を一定に保ちます（耐性の再現）。</p>
+        </div>
+
+        <div class="field">
+          <label for="tciDuration">計画時間 (min)</label>
+          <input type="number" id="tciDuration" value="60" min="5" max="600" step="5">
+        </div>
+        <button class="btn btn-primary btn-block" id="tciPlanBtn">投与計画を作成</button>
+      </div>
+
+      <div class="card" id="tciResultsCard" style="display:none;">
+        <h2>投与計画</h2>
+        <div class="metrics" id="tciMetrics"></div>
+        <div class="notice warn" id="tciDeepBisNotice" style="display:none;">
+          BIS &lt; 50 域は集団予測にバイアスがあると著者が明記しています（ベンゾジアゼピンの天井効果）。深鎮静域の予測は参考値として扱ってください。
+        </div>
+        <h3>濃度 と 予測 BIS</h3>
+        <div class="chart-wrap"><canvas id="tciChartConc"></canvas></div>
+        <h3>注入速度</h3>
+        <div class="chart-wrap" style="height:200px;"><canvas id="tciChartRate"></canvas></div>
+        <h3>投与スケジュール</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>時刻(min)</th><th>注入速度(mg/hr)</th><th>目標Ce</th><th>Ce(BIS)</th><th>BIS</th></tr></thead>
+            <tbody id="tciScheduleBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-ghost" id="tciCsvBtn">CSV 出力</button>
+        </div>
       </div>
     </section>
 
@@ -244,6 +312,7 @@
   <script src="js/remimazolam-eleveld-pkpd.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/induction-engine.js"></script>
+  <script src="js/tci-engine.js"></script>
   <script src="js/monitoring-engine.js"></script>
   <script src="js/main.js"></script>
 </body>
