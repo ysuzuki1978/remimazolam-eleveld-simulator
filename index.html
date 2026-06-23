@@ -55,14 +55,7 @@
             </div>
           </div>
         </div>
-        <div class="field">
-          <label for="indSpeed">再生速度</label>
-          <select id="indSpeed">
-            <option value="10">×10</option>
-            <option value="30" selected>×30</option>
-            <option value="60">×60</option>
-          </select>
-        </div>
+        <p class="notice info">リアルタイム（実時間）で進行します。経過時間は実際の臨床時間に対応します。</p>
         <div class="btn-row">
           <button class="btn btn-success" id="indStartBtn">開始</button>
           <button class="btn btn-ghost" id="indPauseBtn" disabled>一時停止</button>
@@ -158,9 +151,10 @@
         <h3>注入速度</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="tciChartRate"></canvas></div>
         <h3>投与スケジュール</h3>
+        <p class="notice info" id="tciBolusNote"></p>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>時刻(min)</th><th>注入速度(mg/hr)</th><th>目標Ce</th><th>Ce(BIS)</th><th>BIS</th></tr></thead>
+            <thead><tr><th>時刻(min)</th><th>ボーラス(mg)</th><th>注入速度(mg/hr)</th><th>目標Ce</th><th>Ce(BIS)</th><th>BIS</th></tr></thead>
             <tbody id="tciScheduleBody"></tbody>
           </table>
         </div>

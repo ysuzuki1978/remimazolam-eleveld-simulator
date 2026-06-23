@@ -17,7 +17,7 @@ class InductionEngine {
     this.running = false;
     this.elapsedMin = 0;
     this.contMgHr = 0;
-    this.speedMult = 30;      // ×real-time
+    this.speedMult = 1;       // real-time (1 sim-min per wall-min)
     this.maxMin = 60;         // auto-stop horizon
     this.tickMs = 100;
     this.dt = 0.01;
