@@ -3,7 +3,7 @@
  * Cache-first for local assets, network-first for the Chart.js CDN.
  */
 
-const CACHE_NAME = 'remimazolam-eleveld-v1.3.0';
+const CACHE_NAME = 'remimazolam-eleveld-v1.3.1';
 
 const LOCAL_ASSETS = [
   './',

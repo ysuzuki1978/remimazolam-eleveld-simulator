@@ -21,6 +21,7 @@ class InductionEngine {
     this.maxMin = 60;         // auto-stop horizon
     this.tickMs = 100;
     this.dt = 0.01;
+    this.lastTick = 0;
     this.callbacks = [];
   }
 
@@ -37,18 +38,34 @@ class InductionEngine {
     this.notify();
   }
 
+  _now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+
   start() {
     if (this.running || !this.state) return;
     this.running = true;
-    const simPerTick = (this.tickMs / 1000 / 60) * this.speedMult; // min advanced per tick
-    this.timer = setInterval(() => this._tick(simPerTick), this.tickMs);
+    this.lastTick = this._now();
+    this.timer = setInterval(() => this._tick(), this.tickMs);
   }
 
-  _tick(simMin) {
-    const steps = Math.max(1, Math.round(simMin / this.dt));
+  /**
+   * Advance the simulation by the ACTUAL wall-clock time elapsed since the last
+   * tick (× speedMult). Driving the advance from the real clock — rather than
+   * assuming each interval is exactly tickMs — keeps it true real-time despite
+   * timer jitter and background-tab throttling. Integration uses sub-steps of
+   * at most `dt` for accuracy; a 0.5 min cap avoids a huge jump after the tab
+   * was suspended.
+   */
+  _tick() {
+    const now = this._now();
+    let simMin = ((now - this.lastTick) / 1000 / 60) * this.speedMult;
+    this.lastTick = now;
+    if (simMin <= 0) return;
+    if (simMin > 0.5) simMin = 0.5;            // clamp after long suspension
+    const n = Math.max(1, Math.ceil(simMin / this.dt));
+    const sub = simMin / n;
     const inf = this.contMgHr / 60;
-    for (let i = 0; i < steps; i++) this.state = EleveldRemimazolam.step(this.state, inf, this.dt, this.params);
-    this.elapsedMin += steps * this.dt;
+    for (let i = 0; i < n; i++) this.state = EleveldRemimazolam.step(this.state, inf, sub, this.params);
+    this.elapsedMin += simMin;
     this.notify();
     if (this.elapsedMin >= this.maxMin) this.stop();
   }
