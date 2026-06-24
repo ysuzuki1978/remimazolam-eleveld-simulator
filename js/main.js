@@ -39,6 +39,7 @@ const App = (() => {
     if (bmi) parts.push(`BMI ${bmi.toFixed(1)}`);
     if (patient.hepatic === HepaticFunction.SEVERE) parts.push('Hepatic↓');
     if (patient.renal === RenalFunction.ESRD) parts.push('ESRD');
+    if (patient.anesStart) parts.push(`Start ${patient.anesStart}`);
     el.innerHTML = parts.join(' · ');
   }
 
