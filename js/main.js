@@ -290,9 +290,10 @@ const InductionController = (() => {
     document.getElementById('indElapsed').innerHTML = `${s.elapsedMin.toFixed(1)}<span class="unit"> min</span>`;
     document.getElementById('indCp').innerHTML = `${fmt(s.cp)}<span class="unit"> µg/mL</span>`;
     document.getElementById('indCe').innerHTML = `${fmt(s.ceBis)}<span class="unit"> µg/mL</span>`;
+    document.getElementById('indCeMoaas').innerHTML = `${fmt(s.ceMoaas)}<span class="unit"> µg/mL</span>`;
     document.getElementById('indBis').textContent = fmt(s.bis, 1);
     document.getElementById('indMoaas').innerHTML = `${fmt(s.moaasWeighted, 1)}<span class="unit"> /5</span>`;
-    if (chart) chart.addPoint(s.elapsedMin, s.ceBis, s.bis);
+    if (chart) chart.addPoint(s.elapsedMin, { cp: s.cp, ceBis: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis });
     if (!s.running && engine.timer === null) setRunningUI(false);
   }
 
@@ -358,6 +359,7 @@ const InductionController = (() => {
     document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
     document.getElementById('indCp').innerHTML = '0.00<span class="unit"> µg/mL</span>';
     document.getElementById('indCe').innerHTML = '0.00<span class="unit"> µg/mL</span>';
+    document.getElementById('indCeMoaas').innerHTML = '0.00<span class="unit"> µg/mL</span>';
     document.getElementById('indBis').textContent = '93.7';
     document.getElementById('indMoaas').innerHTML = '5.0<span class="unit"> /5</span>';
     setRunningUI(false);

@@ -107,18 +107,21 @@ class MultiLineChart {
 
 class RealtimeChart {
   /**
-   * Rolling-window chart: effect-site Ce (left) + BIS (right) vs elapsed seconds.
+   * Rolling-window chart: plasma Cp + effect-site Ce (BIS) + effect-site Ce
+   * (MOAA/S) on the left axis, predicted BIS on the right axis, vs elapsed min.
    * @param {string} canvasId
    * @param {number} maxPoints
    */
-  constructor(canvasId, maxPoints = 600) {
+  constructor(canvasId, maxPoints = 4000) {
     this.canvas = document.getElementById(canvasId);
     this.maxPoints = maxPoints;
     this.chart = new Chart(this.canvas.getContext('2d'), {
       type: 'line',
       data: {
         datasets: [
-          { label: 'Ce BIS (µg/mL)', data: [], borderColor: CHART_COLORS.ceBis, backgroundColor: CHART_COLORS.ceBis, yAxisID: 'left' },
+          { label: 'Cp (parent)', data: [], borderColor: CHART_COLORS.cpRemi, backgroundColor: CHART_COLORS.cpRemi, yAxisID: 'left' },
+          { label: 'Ce (BIS)', data: [], borderColor: CHART_COLORS.ceBis, backgroundColor: CHART_COLORS.ceBis, yAxisID: 'left' },
+          { label: 'Ce (MOAA/S)', data: [], borderColor: CHART_COLORS.ceMoaas, backgroundColor: CHART_COLORS.ceMoaas, borderDash: [4, 3], yAxisID: 'left' },
           { label: 'BIS', data: [], borderColor: CHART_COLORS.bis, backgroundColor: CHART_COLORS.bis, yAxisID: 'right' }
         ]
       },
@@ -131,7 +134,7 @@ class RealtimeChart {
         },
         left: {
           type: 'linear', position: 'left', min: 0,
-          title: { display: true, text: 'Ce (µg/mL)', color: CHART_COLORS.text, font: { size: 11 } },
+          title: { display: true, text: 'Conc. (µg/mL)', color: CHART_COLORS.text, font: { size: 11 } },
           ticks: { color: CHART_COLORS.text, font: { size: 10 } },
           grid: { color: CHART_COLORS.grid }
         },
@@ -145,11 +148,14 @@ class RealtimeChart {
     });
   }
 
-  addPoint(timeMin, ceBis, bis) {
+  /** @param {{cp,ceBis,ceMoaas,bis}} v */
+  addPoint(timeMin, v) {
     const ds = this.chart.data.datasets;
-    ds[0].data.push({ x: timeMin, y: ceBis });
-    ds[1].data.push({ x: timeMin, y: bis });
-    if (ds[0].data.length > this.maxPoints) { ds[0].data.shift(); ds[1].data.shift(); }
+    ds[0].data.push({ x: timeMin, y: v.cp });
+    ds[1].data.push({ x: timeMin, y: v.ceBis });
+    ds[2].data.push({ x: timeMin, y: v.ceMoaas });
+    ds[3].data.push({ x: timeMin, y: v.bis });
+    if (ds[0].data.length > this.maxPoints) ds.forEach(d => d.data.shift());
     this.chart.update('none');
   }
 
