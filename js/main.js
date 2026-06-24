@@ -413,6 +413,9 @@ const TciController = (() => {
     const loc = App.getLocCe();
     if (loc == null) return;
     document.querySelector('input[name="tciMode"][value="ce"]').checked = true;
+    // the recorded LOC Ce is the BIS effect-site value, so target the BIS site
+    const bisRadio = document.querySelector('input[name="tciSite"][value="bis"]');
+    if (bisRadio) bisRadio.checked = true;
     syncModeUI();
     document.getElementById('tciCe').value = (loc + LOC_MARGIN).toFixed(2);
     plan();
@@ -431,8 +434,9 @@ const TciController = (() => {
     const duration = Math.max(5, parseFloat(document.getElementById('tciDuration').value) || 60);
     if (mode === 'ce') {
       const ce = parseFloat(document.getElementById('tciCe').value) || 0.5;
-      lastResult = TciEngine.planCeTarget(patient, ce, { duration, sampleInterval: 0.5 });
-      lastResult.label = `Effect-site Ce target ${ce.toFixed(2)} µg/mL`;
+      const site = (document.querySelector('input[name="tciSite"]:checked') || {}).value || 'moaas';
+      lastResult = TciEngine.planCeTarget(patient, ce, { duration, sampleInterval: 0.5, targetSite: site });
+      lastResult.label = `Effect-site Ce target ${ce.toFixed(2)} µg/mL (${site === 'bis' ? 'BIS' : 'MOAA/S'} site)`;
     } else {
       const bis = parseFloat(document.getElementById('tciBis').value) || 50;
       lastResult = TciEngine.planBisTarget(patient, bis, { duration, sampleInterval: 0.5 });
@@ -450,9 +454,10 @@ const TciController = (() => {
     const rates = pts.filter(p => p.timeMin > 0).map(p => p.infusionMgHr);
     const finalRate = last.infusionMgHr;
 
+    const siteLabel = result.targetSite === 'bis' ? 'BIS' : 'MOAA/S';
     const targetMetric = mode === 'bis'
       ? { lbl: 'Target BIS', val: String(result.bisTarget), unit: '', cls: 'ce' }
-      : { lbl: 'Target Ce', val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
+      : { lbl: `Target Ce (${siteLabel})`, val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
     const metrics = [
       { lbl: 'Loading bolus', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
       targetMetric,
@@ -470,7 +475,8 @@ const TciController = (() => {
     chartConc.render(pts, [
       { key: 'cp', label: 'Cp (parent)', color: CHART_COLORS.cpRemi, axis: 'left' },
       { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
-      { key: 'targetCe', label: 'Target Ce', color: CHART_COLORS.target, axis: 'left', dash: [5, 4] },
+      { key: 'ceMoaas', label: 'Ce (MOAA/S)', color: CHART_COLORS.ceMoaas, axis: 'left', dash: [4, 3] },
+      { key: 'targetCe', label: `Target Ce (${siteLabel})`, color: CHART_COLORS.target, axis: 'left', dash: [5, 4] },
       { key: 'cpMet', label: 'CNS7054', color: CHART_COLORS.cpMet, axis: 'left', dash: [2, 2] },
       { key: 'bis', label: 'BIS', color: CHART_COLORS.bis, axis: 'right' }
     ]);

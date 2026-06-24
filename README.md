@@ -25,7 +25,8 @@ Three modes:
    and LOC snapshot recording. When you record LOC, **that effect-site Ce + 0.15 µg/mL** can be
    sent to the TCI tab as the target Ce.
 2. **TCI / Dosing plan**
-   - **Effect-site Ce target**: derive the loading bolus and maintenance infusion schedule from a target Ce.
+   - **Effect-site Ce target**: choose which effect-site to drive — **MOAA/S-site (ke0 0.298)** or
+    **BIS-site (ke0 0.145)** — and derive the loading bolus and maintenance infusion schedule for that target Ce.
    - **★ Maintain a target BIS (60 / 50 / 40)**: back-calculate the effect-site Ce required for the target
      BIS and, as CNS7054 accumulates, raise the required Ce / infusion rate to hold BIS constant
      (**reproducing tolerance**).
