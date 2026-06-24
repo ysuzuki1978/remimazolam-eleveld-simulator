@@ -24,14 +24,19 @@ class MonitoringEngine {
   clearDoseEvents() { this.doseEvents = []; }
 
   /**
-   * @param {Object} [opts] { duration=60, dt=0.1, sampleInterval=0.5 } (min)
+   * @param {Object} [opts] { duration, dt=0.1, sampleInterval=0.5, tailMin=120 } (min)
+   *   If `duration` is omitted, the simulation runs until the last dose event
+   *   time + `tailMin` (default 120 min), matching the propofol simulator.
    * @returns {SimulationResult}
    */
   run(opts = {}) {
     if (!this.patient) throw new Error('patient not set');
-    const duration = opts.duration != null ? opts.duration : 60;
+    if (!this.doseEvents.length) throw new Error('at least one dose event is required');
     const dt = opts.dt != null ? opts.dt : 0.1;
     const sampleInterval = opts.sampleInterval != null ? opts.sampleInterval : 0.5;
+    const tailMin = opts.tailMin != null ? opts.tailMin : 120;
+    const lastEventMin = Math.max(...this.doseEvents.map(e => e.timeMin));
+    const duration = opts.duration != null ? opts.duration : lastEventMin + tailMin;
 
     const { points } = EleveldRemimazolam.simulate(this.patient, this.doseEvents, { duration, dt, sampleInterval });
     const tps = points.map(p => new TimePoint({

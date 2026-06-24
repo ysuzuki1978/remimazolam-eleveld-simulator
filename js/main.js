@@ -49,6 +49,7 @@ const App = (() => {
       document.getElementById('pAge').value = patient.age;
       document.getElementById('pWeight').value = patient.weight;
       document.getElementById('pHeight').value = patient.height ?? '';
+      document.getElementById('pAnesStart').value = patient.anesStart || '08:00';
       setRadio('pSex', patient.sex);
       setRadio('pOpioid', patient.opioid ? 'yes' : 'no');
       document.getElementById('pHepatic').value = patient.hepatic;
@@ -69,7 +70,8 @@ const App = (() => {
       sex: getRadio('pSex'),
       opioid: getRadio('pOpioid') === 'yes',
       hepatic: document.getElementById('pHepatic').value,
-      renal: document.getElementById('pRenal').value
+      renal: document.getElementById('pRenal').value,
+      anesStart: document.getElementById('pAnesStart').value || '08:00'
     });
     const v = candidate.validate();
     const errBox = document.getElementById('patientErrors');
@@ -137,10 +139,24 @@ const MonitoringController = (() => {
   const engine = new MonitoringEngine();
   let chartConc = null, chartMoaas = null;
   let lastResult = null;
-  // pending event being edited via the modal (null => not open)
-  let pending = null;
+
+  function startTime() {
+    const p = App.getPatient();
+    return (p && p.anesStart) ? p.anesStart : '08:00';
+  }
+
+  // The elapsed minutes (timeMin) are the source of truth; the start time is
+  // only a display reference. Re-derive each event's clock label as
+  // (start + timeMin) so shifting the start time just shifts the labels.
+  function resyncEvents() {
+    const startMin = ClockTime.toMinutes(startTime());
+    engine.doseEvents.forEach(ev => { ev.clock = ClockTime.toHHMM(startMin + ev.timeMin); });
+    engine.doseEvents.sort((a, b) => a.timeMin - b.timeMin);
+  }
 
   function renderEventsTable() {
+    resyncEvents();
+    document.getElementById('monAnesStartRef').textContent = startTime();
     const body = document.getElementById('monEventsBody');
     const empty = document.getElementById('monEventsEmpty');
     body.innerHTML = '';
@@ -148,7 +164,8 @@ const MonitoringController = (() => {
     empty.style.display = 'none';
     engine.doseEvents.forEach((ev, i) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${ev.timeMin}</td><td>${ev.bolusMg || 0}</td><td>${ev.continuousMgHr || 0}</td>` +
+      tr.innerHTML = `<td>${ev.clock}</td>` +
+        `<td>+${ev.timeMin.toFixed(0)}</td><td>${ev.bolusMg || 0}</td><td>${ev.continuousMgHr || 0}</td>` +
         `<td><button class="btn btn-ghost" data-i="${i}" style="padding:2px 10px;font-size:0.75rem;">Remove</button></td>`;
       tr.querySelector('button').addEventListener('click', () => { engine.removeDoseEvent(i); renderEventsTable(); });
       body.appendChild(tr);
@@ -156,17 +173,22 @@ const MonitoringController = (() => {
   }
 
   function openEventModal() {
-    document.getElementById('evTime').value = 0;
+    document.getElementById('evStartRef').textContent = startTime();
+    document.getElementById('evTime').value = startTime();
     document.getElementById('evBolus').value = 0;
     document.getElementById('evCont').value = 0;
     document.getElementById('doseEventModal').classList.add('open');
   }
   function closeEventModal() { document.getElementById('doseEventModal').classList.remove('open'); }
   function saveEvent() {
-    const t = parseFloat(document.getElementById('evTime').value) || 0;
+    const clock = document.getElementById('evTime').value || startTime();
+    const elapsed = ClockTime.elapsedFromStart(startTime(), clock);
+    if (elapsed == null) { alert('Invalid time'); return; }
     const b = parseFloat(document.getElementById('evBolus').value) || 0;
     const c = parseFloat(document.getElementById('evCont').value) || 0;
-    engine.addDoseEvent(new DoseEvent(t, b, c));
+    const ev = new DoseEvent(elapsed, b, c);
+    ev.clock = clock;
+    engine.addDoseEvent(ev);
     renderEventsTable();
     closeEventModal();
   }
@@ -176,8 +198,9 @@ const MonitoringController = (() => {
     if (!patient) return;
     engine.setPatient(patient);
     if (!engine.doseEvents.length) { alert('Add at least one dose event'); return; }
-    const duration = Math.max(1, parseFloat(document.getElementById('monDuration').value) || 60);
-    lastResult = engine.run({ duration, dt: 0.1, sampleInterval: 0.5 });
+    resyncEvents();
+    // run until 120 min after the last event (duration omitted)
+    lastResult = engine.run({ dt: 0.1, sampleInterval: 0.5, tailMin: 120 });
     renderResult(lastResult);
     document.getElementById('monCsvBtn').disabled = false;
   }
@@ -236,6 +259,8 @@ const MonitoringController = (() => {
     document.getElementById('doseEventModal').addEventListener('click', (e) => { if (e.target.id === 'doseEventModal') closeEventModal(); });
     document.getElementById('monRunBtn').addEventListener('click', run);
     document.getElementById('monCsvBtn').addEventListener('click', exportCsv);
+    // re-derive elapsed minutes if the anaesthesia start time changes
+    App.onPatientChange(() => renderEventsTable());
     renderEventsTable();
   }
 

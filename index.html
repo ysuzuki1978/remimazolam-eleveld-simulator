@@ -175,21 +175,13 @@
     <section class="panel" id="panel-monitoring">
       <div class="card">
         <h2>Monitoring (dose events → time course)</h2>
-        <div class="grid-2">
-          <div class="field">
-            <label for="monDuration">Simulation duration (min)</label>
-            <input type="number" id="monDuration" value="60" min="1" max="600" step="1">
-          </div>
-          <div class="field">
-            <label>&nbsp;</label>
-            <button class="btn btn-ghost btn-block" id="monAddEventBtn">+ Add dose event</button>
-          </div>
-        </div>
+        <p class="notice info">Enter dose events by clock time (from the anaesthesia start, <b id="monAnesStartRef">08:00</b>). The simulation runs until <b>120 min after the last event</b>.</p>
+        <button class="btn btn-ghost btn-block" id="monAddEventBtn" style="margin-bottom:12px;">+ Add dose event</button>
         <h3>Dose events</h3>
         <div class="tbl-wrap">
           <table class="tbl" id="monEventsTable">
             <thead>
-              <tr><th>Time (min)</th><th>Bolus (mg)</th><th>Continuous (mg/hr)</th><th></th></tr>
+              <tr><th>Time</th><th>+min</th><th>Bolus (mg)</th><th>Continuous (mg/hr)</th><th></th></tr>
             </thead>
             <tbody id="monEventsBody"></tbody>
           </table>
@@ -223,7 +215,7 @@
     <div>
       Research/education simulator. Not for clinical decisions or actual drug administration.
     </div>
-    <div>Software: Apache-2.0 · v1.3.2 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Software: Apache-2.0 · v1.4.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
   </footer>
 
   <!-- ===== Patient editor modal ===== -->
@@ -247,6 +239,10 @@
       <div class="field">
         <label for="pHeight">Height (cm) — for BMI display only (not used in PK)</label>
         <input type="number" id="pHeight" value="170" min="30" max="250" step="0.1">
+      </div>
+      <div class="field">
+        <label for="pAnesStart">Anaesthesia start time</label>
+        <input type="time" id="pAnesStart" value="08:00">
       </div>
       <div class="field">
         <label>Sex</label>
@@ -289,8 +285,8 @@
     <div class="modal">
       <h2>Dose event</h2>
       <div class="field">
-        <label for="evTime">Time (min) — from anaesthesia start</label>
-        <input type="number" id="evTime" value="0" min="0" step="0.5">
+        <label for="evTime">Time (clock) — anaesthesia start <span id="evStartRef">08:00</span></label>
+        <input type="time" id="evTime" value="08:00">
       </div>
       <div class="field">
         <label for="evBolus">Bolus (mg)</label>

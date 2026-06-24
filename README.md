@@ -29,7 +29,8 @@ Three modes:
    - **★ Maintain a target BIS (60 / 50 / 40)**: back-calculate the effect-site Ce required for the target
      BIS and, as CNS7054 accumulates, raise the required Ce / infusion rate to hold BIS constant
      (**reproducing tolerance**).
-3. **Monitoring** — an arbitrary list of dose events (multiple boluses + rate changes) → full time course
+3. **Monitoring** — dose events are entered by **clock time** (relative to the anaesthesia start time set on
+   the patient). The simulation runs until **120 min after the last event**, and the full time course is
    plotted and exported to CSV.
 
 Covariates: age, weight, sex, opioid co-administration, hepatic function (Pugh-Child > 8), renal function (ESRD).

@@ -70,6 +70,7 @@ class Patient {
     this.opioid = !!o.opioid;
     this.hepatic = o.hepatic || HepaticFunction.NORMAL;
     this.renal = o.renal || RenalFunction.NORMAL;
+    this.anesStart = o.anesStart || '08:00';   // anaesthesia start (HH:MM)
   }
 
   get bmi() {
@@ -110,10 +111,44 @@ class Patient {
   clone() {
     return new Patient({
       id: this.id, age: this.age, weight: this.weight, height: this.height,
-      sex: this.sex, opioid: this.opioid, hepatic: this.hepatic, renal: this.renal
+      sex: this.sex, opioid: this.opioid, hepatic: this.hepatic, renal: this.renal,
+      anesStart: this.anesStart
     });
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Clock-time helpers (events are entered as HH:MM wall-clock)         */
+/* ------------------------------------------------------------------ */
+
+const ClockTime = Object.freeze({
+  /** "HH:MM" -> minutes since midnight (null if invalid). */
+  toMinutes(hhmm) {
+    if (!hhmm || typeof hhmm !== 'string') return null;
+    const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = +m[1], min = +m[2];
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  },
+  /** minutes since midnight -> "HH:MM" (wraps past 24 h, e.g. overnight cases). */
+  toHHMM(mins) {
+    const t = ((Math.round(mins) % 1440) + 1440) % 1440;
+    const h = Math.floor(t / 60), m = t % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  },
+  /**
+   * Elapsed minutes from a start clock time to an event clock time.
+   * If the event time is earlier in the day, assume it is on the next day.
+   */
+  elapsedFromStart(startHHMM, eventHHMM) {
+    const s = ClockTime.toMinutes(startHHMM), e = ClockTime.toMinutes(eventHHMM);
+    if (s == null || e == null) return null;
+    let d = e - s;
+    if (d < 0) d += 1440;
+    return d;
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /* Dose events & time series                                           */
@@ -201,6 +236,7 @@ if (typeof window !== 'undefined') {
   window.RenalFunction = RenalFunction;
   window.OpioidStatus = OpioidStatus;
   window.Patient = Patient;
+  window.ClockTime = ClockTime;
   window.DoseEvent = DoseEvent;
   window.TimePoint = TimePoint;
   window.SimulationResult = SimulationResult;
@@ -209,6 +245,6 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     SexType, HepaticFunction, RenalFunction, OpioidStatus,
-    Patient, DoseEvent, TimePoint, SimulationResult
+    Patient, ClockTime, DoseEvent, TimePoint, SimulationResult
   };
 }
