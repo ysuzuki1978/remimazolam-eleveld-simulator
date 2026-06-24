@@ -41,20 +41,29 @@ const TciEngine = (() => {
   }
 
   const LOADING_MG_PER_KG = 0.1;   // standard loading bolus (mg/kg)
+  const CTRL_GAIN = 1.5;           // how aggressively plasma is raised to pull Ce up
+  const CTRL_CLIP = 2.2;           // cap plasma overshoot at CLIP × target
+
+  /** state-vector index of the targeted effect-site compartment. */
+  function effectSiteIndex(site) { return site === 'moaas' ? 6 : 7; }
 
   /**
-   * General planner (plasma-target TCI).
+   * General planner (effect-site-target TCI).
    *
    * Delivers a standard weight-based loading bolus (0.1 mg/kg) at t=0, then
-   * each control interval clamps plasma at the (possibly time-varying) target
-   * via the predictive infusion rate; the effect-site concentration follows
-   * with its ke0 lag. (Maintenance starts once plasma has fallen to target.)
+   * drives the SELECTED effect-site concentration (BIS-site ke0=0.145 or
+   * MOAA/S-site ke0=0.298) toward the (possibly time-varying) target. Each
+   * control interval sets a plasma goal slightly above target while the
+   * effect-site is still below it (proportional, capped at CTRL_CLIP×target),
+   * so Ce rises smoothly without large overshoot and settles at target
+   * (where plasma = effect-site = target).
    *
    * @param {Patient} patient
    * @param {(timeMin:number, obs:Object, params:Object)=>number} targetCeFn
-   *        desired plasma/effect-site target (µg/mL) at a given time
-   * @param {Object} [opts] { duration=60, dtCtrl=0.1, maxMgHr=1200, sampleInterval=0.5 }
-   * @returns {{params, loadingBolusMg, peakRateMgHr, totalDoseMg, points: Object[]}}
+   *        desired effect-site target (µg/mL) at a given time
+   * @param {Object} [opts] { duration=60, dtCtrl=0.1, maxMgHr=1200,
+   *                          sampleInterval=0.5, targetSite='bis'|'moaas' }
+   * @returns {{params, targetSite, loadingBolusMg, peakRateMgHr, totalDoseMg, points}}
    */
   function plan(patient, targetCeFn, opts = {}) {
     const params = M.computeParameters(patient);
@@ -62,6 +71,8 @@ const TciEngine = (() => {
     const dtCtrl = opts.dtCtrl != null ? opts.dtCtrl : DEFAULT_CTRL;
     const rMax = (opts.maxMgHr != null ? opts.maxMgHr : 1200) / 60;
     const sampleInterval = opts.sampleInterval != null ? opts.sampleInterval : 0.5;
+    const targetSite = opts.targetSite === 'moaas' ? 'moaas' : 'bis';
+    const ceIdx = effectSiteIndex(targetSite);
     const s = infusionSensitivity(params, dtCtrl);
 
     const loadingBolusMg = LOADING_MG_PER_KG * patient.covariates.WGT;   // 0.1 mg/kg
@@ -77,9 +88,14 @@ const TciEngine = (() => {
       const tMin = c * dtCtrl;
       const obs = M.observe(y, params);
       const targetCe = targetCeFn(tMin, obs, params);
+      const ceNow = y[ceIdx];
+
+      // plasma goal: above target while the effect-site is below it, capped.
+      let cpSet = targetCe + CTRL_GAIN * Math.max(0, targetCe - ceNow);
+      if (cpSet > CTRL_CLIP * targetCe) cpSet = CTRL_CLIP * targetCe;
 
       const cpHomog = predictCpHomog(y, params, dtCtrl);
-      let r = (targetCe - cpHomog) / s;        // mg/min
+      let r = (cpSet - cpHomog) / s;        // mg/min
       if (r < 0) r = 0; else if (r > rMax) r = rMax;
       const rHr = r * 60;
       if (rHr > peakRateMgHr) peakRateMgHr = rHr;
@@ -94,20 +110,23 @@ const TciEngine = (() => {
         totalDoseMg += r * dtCtrl;
       }
     }
-    return { params, loadingBolusMg, peakRateMgHr, totalDoseMg, points };
+    return { params, targetSite, loadingBolusMg, peakRateMgHr, totalDoseMg, points };
   }
 
-  /** Constant effect-site Ce target (µg/mL). */
+  /**
+   * Constant effect-site Ce target (µg/mL).
+   * @param {Object} [opts] supports targetSite ('bis' | 'moaas')
+   */
   function planCeTarget(patient, targetCe, opts = {}) {
     return plan(patient, () => targetCe, opts);
   }
 
   /**
    * Maintain a target BIS by raising the required Ce as the metabolite
-   * accumulates. (S6 — competitive-antagonism aware.)
+   * accumulates. Drives the BIS effect-site. (competitive-antagonism aware)
    */
   function planBisTarget(patient, bisTarget, opts = {}) {
-    const r = plan(patient, (t, obs, params) => M.requiredCeForBIS(bisTarget, obs.cpMet, params), opts);
+    const r = plan(patient, (t, obs, params) => M.requiredCeForBIS(bisTarget, obs.cpMet, params), { ...opts, targetSite: 'bis' });
     r.bisTarget = bisTarget;
     return r;
   }
