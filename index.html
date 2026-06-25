@@ -102,8 +102,9 @@
         <div class="field">
           <label>Target type</label>
           <div class="radio-row">
-            <label><input type="radio" name="tciMode" value="ce" checked><span>Effect-site Ce target</span></label>
-            <label><input type="radio" name="tciMode" value="bis"><span>Maintain target BIS</span></label>
+            <label><input type="radio" name="tciMode" value="ce" checked><span>Effect-site Ce</span></label>
+            <label><input type="radio" name="tciMode" value="bis"><span>Target BIS</span></label>
+            <label><input type="radio" name="tciMode" value="moaas"><span>Target MOAA/S</span></label>
           </div>
         </div>
 
@@ -146,6 +147,24 @@
             <button class="btn btn-ghost" type="button" data-bis="40" id="tciBis40">BIS 40</button>
           </div>
           <p class="notice info">Back-calculates the effect-site Ce required for the target BIS, and raises the required Ce / infusion rate as the metabolite (CNS7054) accumulates, holding BIS constant (tolerance).</p>
+        </div>
+
+        <!-- MOAA/S target controls -->
+        <div id="tciMoaasControls" style="display:none;">
+          <div class="field">
+            <label for="tciMoaas">Target MOAA/S (probability-weighted, 0–5)</label>
+            <div class="stepper">
+              <button type="button" data-step="-0.5" data-target="tciMoaas">−</button>
+              <input type="number" id="tciMoaas" value="2.5" min="0" max="5" step="0.5">
+              <button type="button" data-step="0.5" data-target="tciMoaas">＋</button>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-bottom:6px;">
+            <button class="btn btn-ghost" type="button" data-moaas="3" id="tciMoaas3">Sedation (3)</button>
+            <button class="btn btn-ghost" type="button" data-moaas="2" id="tciMoaas2">Deep sed. (2)</button>
+            <button class="btn btn-ghost" type="button" data-moaas="0.5" id="tciMoaas05">Anaesthesia (0.5)</button>
+          </div>
+          <p class="notice info">Back-calculates the effect-site Ce required to hold the (probability-weighted) MOAA/S score, raising the Ce / infusion rate as the metabolite (CNS7054) accumulates (tolerance). MOAA/S 2–3 = procedural sedation, ≤1 = loss of consciousness, 0 = anaesthesia.</p>
         </div>
 
         <div class="field">
@@ -223,7 +242,7 @@
     <div>
       Research/education simulator. Not for clinical decisions or actual drug administration.
     </div>
-    <div>Software: Apache-2.0 · v1.6.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Software: Apache-2.0 · v1.7.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
   </footer>
 
   <!-- ===== Patient editor modal ===== -->

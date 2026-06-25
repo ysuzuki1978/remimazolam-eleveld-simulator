@@ -424,6 +424,7 @@ const TciController = (() => {
   function syncModeUI() {
     const mode = currentMode();
     document.getElementById('tciCeControls').style.display = mode === 'ce' ? '' : 'none';
+    document.getElementById('tciMoaasControls').style.display = mode === 'moaas' ? '' : 'none';
     document.getElementById('tciBisControls').style.display = mode === 'bis' ? '' : 'none';
   }
 
@@ -437,6 +438,11 @@ const TciController = (() => {
       const site = (document.querySelector('input[name="tciSite"]:checked') || {}).value || 'moaas';
       lastResult = TciEngine.planCeTarget(patient, ce, { duration, sampleInterval: 0.5, targetSite: site });
       lastResult.label = `Effect-site Ce target ${ce.toFixed(2)} µg/mL (${site === 'bis' ? 'BIS' : 'MOAA/S'} site)`;
+    } else if (mode === 'moaas') {
+      const m = parseFloat(document.getElementById('tciMoaas').value);
+      const moaas = Number.isFinite(m) ? m : 2.5;
+      lastResult = TciEngine.planMoaasTarget(patient, moaas, { duration, sampleInterval: 0.5 });
+      lastResult.label = `Target MOAA/S ${moaas}`;
     } else {
       const bis = parseFloat(document.getElementById('tciBis').value) || 50;
       lastResult = TciEngine.planBisTarget(patient, bis, { duration, sampleInterval: 0.5 });
@@ -455,15 +461,17 @@ const TciController = (() => {
     const finalRate = last.infusionMgHr;
 
     const siteLabel = result.targetSite === 'bis' ? 'BIS' : 'MOAA/S';
-    const targetMetric = mode === 'bis'
-      ? { lbl: 'Target BIS', val: String(result.bisTarget), unit: '', cls: 'ce' }
-      : { lbl: `Target Ce (${siteLabel})`, val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
+    let targetMetric;
+    if (mode === 'bis') targetMetric = { lbl: 'Target BIS', val: String(result.bisTarget), unit: '', cls: 'ce' };
+    else if (mode === 'moaas') targetMetric = { lbl: 'Target MOAA/S', val: String(result.moaasTarget), unit: '/5', cls: 'moaas' };
+    else targetMetric = { lbl: `Target Ce (${siteLabel})`, val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
     const metrics = [
       { lbl: 'Loading bolus', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
       targetMetric,
       { lbl: 'Final rate', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
       { lbl: 'Total dose', val: result.totalDoseMg.toFixed(0), unit: 'mg', cls: 'met' },
-      { lbl: 'Final BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' }
+      { lbl: 'Final BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' },
+      { lbl: 'Final MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '/5', cls: 'moaas' }
     ];
     document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
@@ -522,6 +530,8 @@ const TciController = (() => {
       b.addEventListener('click', () => { document.getElementById('tciCe').value = b.dataset.ce; }));
     document.querySelectorAll('#tciBisControls [data-bis]').forEach(b =>
       b.addEventListener('click', () => { document.getElementById('tciBis').value = b.dataset.bis; }));
+    document.querySelectorAll('#tciMoaasControls [data-moaas]').forEach(b =>
+      b.addEventListener('click', () => { document.getElementById('tciMoaas').value = b.dataset.moaas; }));
     document.getElementById('tciLocApplyBtn').addEventListener('click', applyLoc);
     App.onLocCeChange(updateLocBanner);
     // refresh the LOC banner whenever the TCI tab is opened

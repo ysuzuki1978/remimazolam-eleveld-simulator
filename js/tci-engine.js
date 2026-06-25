@@ -131,7 +131,17 @@ const TciEngine = (() => {
     return r;
   }
 
-  return { plan, planCeTarget, planBisTarget };
+  /**
+   * Maintain a target (probability-weighted) MOAA/S score by raising the
+   * required Ce as the metabolite accumulates. Drives the MOAA/S effect-site.
+   */
+  function planMoaasTarget(patient, moaasTarget, opts = {}) {
+    const r = plan(patient, (t, obs, params) => M.requiredCeForMoaas(moaasTarget, obs.cpMet, params), { ...opts, targetSite: 'moaas' });
+    r.moaasTarget = moaasTarget;
+    return r;
+  }
+
+  return { plan, planCeTarget, planBisTarget, planMoaasTarget };
 })();
 
 if (typeof window !== 'undefined') window.TciEngine = TciEngine;
