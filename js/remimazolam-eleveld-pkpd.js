@@ -195,6 +195,17 @@ const EleveldRemimazolam = (() => {
     if (bis > p.baseline) bis = p.baseline;
 
     // --- MOAA/S (proportional odds, γ = 1) ---
+    const m = moaasFromCe(ceMoaas, cpMet, p);
+
+    return { cp, ceBis, ceMoaas, cpMet, bis, moaasProbs: m.probs, moaasWeighted: m.weighted };
+  }
+
+  /**
+   * MOAA/S proportional-odds score from a MOAA/S effect-site concentration and
+   * the metabolite (plasma) concentration. Returns per-score probabilities and
+   * the probability-weighted mean (0..5).
+   */
+  function moaasFromCe(ceMoaas, cpMet, p) {
     const rM = ceMoaas / p.ce50_moaas;
     const PEFFM = p.DEFF * rM / (1 + rM + cpMet / p.ca50_moaas);
     const LLE0 = p.b0 + PEFFM;
@@ -205,12 +216,28 @@ const EleveldRemimazolam = (() => {
     const PLE0 = sigmoid(LLE0), PLE1 = sigmoid(LLE1), PLE2 = sigmoid(LLE2),
           PLE3 = sigmoid(LLE3), PLE4 = sigmoid(LLE4);
     // P[score = k], k = 0..5
-    let P0 = PLE0, P1 = PLE1 - PLE0, P2 = PLE2 - PLE1, P3 = PLE3 - PLE2, P4 = PLE4 - PLE3, P5 = 1 - PLE4;
-    const probs = [P0, P1, P2, P3, P4, P5].map(v => v < 0 ? 0 : v);
-    let moaasWeighted = 0;
-    for (let k = 0; k < 6; k++) moaasWeighted += k * probs[k];
+    const probs = [PLE0, PLE1 - PLE0, PLE2 - PLE1, PLE3 - PLE2, PLE4 - PLE3, 1 - PLE4].map(v => v < 0 ? 0 : v);
+    let weighted = 0;
+    for (let k = 0; k < 6; k++) weighted += k * probs[k];
+    return { probs, weighted };
+  }
 
-    return { cp, ceBis, ceMoaas, cpMet, bis, moaasProbs: probs, moaasWeighted };
+  /**
+   * Invert the MOAA/S model: effect-site Ce (µg/mL) required for a target
+   * probability-weighted MOAA/S score, given the metabolite concentration.
+   * The weighted score decreases monotonically with Ce, so we bisect.
+   * As cpMet accumulates, the required Ce rises (tolerance).
+   */
+  function requiredCeForMoaas(moaasTarget, cpMet, p) {
+    if (moaasTarget >= 5) return 0;                 // already awake
+    const target = moaasTarget <= 0 ? 1e-3 : moaasTarget;
+    let lo = 0, hi = 10;                             // Ce range (µg/mL)
+    for (let i = 0; i < 60; i++) {
+      const mid = 0.5 * (lo + hi);
+      // weighted > target => still too light => need more drug => raise lo
+      if (moaasFromCe(mid, cpMet, p).weighted > target) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
   }
 
   /**
@@ -281,7 +308,9 @@ const EleveldRemimazolam = (() => {
     deriv,
     step,
     observe,
+    moaasFromCe,
     requiredCeForBIS,
+    requiredCeForMoaas,
     simulate
   };
 })();

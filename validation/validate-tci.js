@@ -69,6 +69,27 @@ for (const target of [60, 50, 40]) {
   }
 }
 
+console.log('\n=== 3b. MOAA/S targets hold + tolerance escalation ===');
+{
+  const M = global.EleveldRemimazolam;
+  const p0 = M.computeParameters(refPt());
+  // inversion round-trips (Ca=0)
+  for (const tgt of [3.0, 2.5, 1.0]) {
+    const ce = M.requiredCeForMoaas(tgt, 0, p0);
+    const w = M.moaasFromCe(ce, 0, p0).weighted;
+    check(`requiredCeForMoaas(${tgt}) round-trips`, Math.abs(w - tgt) <= 0.02, `(Ce=${ce.toFixed(3)} -> ${w.toFixed(3)})`);
+  }
+  for (const target of [3.0, 2.5, 1.0]) {
+    const r = TciEngine.planMoaasTarget(refPt(), target, { duration: 60, sampleInterval: 0.5 });
+    const tail = r.points.filter(x => x.timeMin >= 30);
+    const err = Math.max(...tail.map(x => Math.abs(x.moaasWeighted - target)));
+    check(`MOAA/S=${target}: held within ±0.15 after 30 min`, err <= 0.15, `(max dev ${err.toFixed(3)})`);
+    const t10 = at(r.points, 10), t60 = at(r.points, 60);
+    check(`MOAA/S=${target}: required Ce rises (10->60 min)`, t60.targetCe > t10.targetCe,
+          `(${t10.targetCe.toFixed(3)} -> ${t60.targetCe.toFixed(3)} µg/mL)`);
+  }
+}
+
 console.log('\n=== 4. Loading bolus = 0.1 mg/kg across weights ===');
 {
   for (const wgt of [50, 70, 90]) {

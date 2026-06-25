@@ -27,9 +27,10 @@ Three modes:
 2. **TCI / Dosing plan**
    - **Effect-site Ce target**: choose which effect-site to drive — **MOAA/S-site (ke0 0.298)** or
     **BIS-site (ke0 0.145)** — and derive the loading bolus and maintenance infusion schedule for that target Ce.
-   - **★ Maintain a target BIS (60 / 50 / 40)**: back-calculate the effect-site Ce required for the target
-     BIS and, as CNS7054 accumulates, raise the required Ce / infusion rate to hold BIS constant
-     (**reproducing tolerance**).
+   - **★ Maintain a target effect (BIS or MOAA/S)**: back-calculate the effect-site Ce required for the target
+     **BIS** (e.g. 60/50/40) or **MOAA/S** score (e.g. 3 / 2 / 0.5), and as CNS7054 accumulates, raise the
+     required Ce / infusion rate to hold the effect constant (**reproducing tolerance**). Holding the *effect*
+     — rather than a fixed concentration — is what keeps depth stable over long cases.
 3. **Monitoring** — dose events are entered by **clock time** (relative to the anaesthesia start time set on
    the patient). The simulation runs until **120 min after the last event**, and the full time course is
    plotted and exported to CSV.
