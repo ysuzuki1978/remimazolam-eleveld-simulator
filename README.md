@@ -71,9 +71,9 @@ python3 -m http.server 8000   # = npm run serve
 ## Model validation
 
 ```bash
-npm run validate          # = model + TCI test suites
+npm run validate          # = model + TCI test suites (75 checks)
 node validation/validate-model.js   # PK-PD core (47 checks)
-node validation/validate-tci.js     # TCI / BIS target (17 checks)
+node validation/validate-tci.js     # TCI: effect-site Ce / BIS / MOAA/S targets (28 checks)
 ```
 
 What is checked (selected):
@@ -82,7 +82,8 @@ What is checked (selected):
 - Numerical soundness (RK4 ≈ fine-step Euler, effect-site hysteresis)
 - **Anaesthesia target concentration (5.25 × MOAA/S Ce50 = 0.96 µg/mL) → BIS ≈ 47.5** (reproduces the paper's "anaesthesia BIS ≈ 50")
 - **Required Ce / loading dose decrease with age** (reproducing Eleveld's central claim)
-- Target BIS 60/50/40 held within ±3, with infusion escalation as the metabolite accumulates (tolerance)
+- Effect-site Ce target: the selected effect-site (BIS / MOAA/S) converges to target
+- Target BIS 60/50/40 and target MOAA/S 3/2.5/1 held to tolerance, with infusion escalation as the metabolite accumulates
 
 ## Known limitations
 
