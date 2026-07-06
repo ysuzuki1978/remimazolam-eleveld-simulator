@@ -1,0 +1,15 @@
+const pk = require('./results/pk_matrix.json'), pd = require('./results/pd_matrix.json');
+const inr = pk.filter(r => !r.ageExtrap && !r.weightExtrap);
+const mean = (a, f) => (a.reduce((s, x) => s + f(x), 0) / a.length);
+const rng = (a, f) => `${Math.min(...a.map(f)).toFixed(1)}-${Math.max(...a.map(f)).toFixed(1)}`;
+console.log('in-range (6-93y,21-171kg) n=', inr.length);
+console.log('remi freeze360%:', rng(inr, r => r.remi.freeze_overshoot_360_pct), 'mean', mean(inr, r => r.remi.freeze_overshoot_360_pct).toFixed(1));
+console.log('prop freeze360%:', rng(inr, r => r.prop.freeze_overshoot_360_pct), 'mean', mean(inr, r => r.prop.freeze_overshoot_360_pct).toFixed(1));
+console.log('remi stepdown-decline%:', rng(inr, r => r.remi.stepdown_decline_60to360_pct), 'mean', mean(inr, r => r.remi.stepdown_decline_60to360_pct).toFixed(1));
+console.log('prop stepdown-decline%:', rng(inr, r => r.prop.stepdown_decline_60to360_pct), 'mean', mean(inr, r => r.prop.stepdown_decline_60to360_pct).toFixed(1));
+console.log('remi bestfix-band%:', rng(inr, r => r.remi.bestfix_maxdev_pct), 'mean', mean(inr, r => r.remi.bestfix_maxdev_pct).toFixed(1));
+console.log('prop bestfix-band%:', rng(inr, r => r.prop.bestfix_maxdev_pct), 'mean', mean(inr, r => r.prop.bestfix_maxdev_pct).toFixed(1));
+console.log('remi V3:', rng(pk, r => r.remi.V3), ' prop V3:', rng(pk, r => r.prop.V3));
+const pdr = pd.filter(r => !r.ageExtrap && !r.weightExtrap);
+console.log('BIS drift mean+', mean(pdr, r => r.bis_drift_30to360).toFixed(1), 'range', rng(pdr, r => r.bis_drift_30to360));
+console.log('cpMet360:', rng(pdr, r => r.cpMet_360));
