@@ -182,6 +182,7 @@
         </div>
         <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="tciChartConc"></canvas></div>
+        <p class="chart-hint">Wheel / pinch: zoom time · drag: pan · double-click: reset</p>
         <h3>Infusion rate</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="tciChartRate"></canvas></div>
         <h3>Dosing schedule</h3>
@@ -228,6 +229,7 @@
         </div>
         <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="monChartConc"></canvas></div>
+        <p class="chart-hint">Wheel / pinch: zoom time · drag: pan · double-click: reset</p>
         <h3>Probability-weighted MOAA/S (sedation score)</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="monChartMoaas"></canvas></div>
       </div>
@@ -242,7 +244,7 @@
     <div>
       Research/education simulator. Not for clinical decisions or actual drug administration.
     </div>
-    <div>Software: Apache-2.0 · v1.7.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Software: Apache-2.0 · v1.8.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
   </footer>
 
   <!-- ===== Patient editor modal ===== -->
@@ -338,6 +340,9 @@
 
   <!-- ===== Scripts ===== -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Vendored locally (no extra CDN dependency) for chart zoom/pan -->
+  <script src="js/vendor/hammer.min.js"></script>
+  <script src="js/vendor/chartjs-plugin-zoom.min.js"></script>
   <script src="js/models.js"></script>
   <script src="js/remimazolam-eleveld-pkpd.js"></script>
   <script src="js/charts.js"></script>

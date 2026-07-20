@@ -7,7 +7,16 @@
  *   RealtimeChart  : rolling-window chart for the real-time induction view.
  *
  * Requires Chart.js v3 (loaded via CDN in index.html).
+ * Optional: chartjs-plugin-zoom + hammer.js (vendored locally) enable
+ * wheel/pinch zoom and drag pan on the static result charts.
  */
+
+// Register the zoom plugin if it was loaded (vendored, may be absent offline
+// on very old caches — degrade gracefully to a non-zoomable chart).
+if (typeof window !== 'undefined' && window.Chart && window.ChartZoom) {
+  try { window.Chart.register(window.ChartZoom); } catch (e) { /* already registered */ }
+}
+const ZOOM_AVAILABLE = typeof window !== 'undefined' && !!window.ChartZoom;
 
 const CHART_COLORS = {
   cpRemi: '#3A8FD6',
@@ -21,21 +30,34 @@ const CHART_COLORS = {
   text: '#8B98A5'
 };
 
-function baseLineOptions(scales) {
+/**
+ * @param {Object} scales
+ * @param {Object} [opts]  { zoom:boolean } — enable time-axis wheel/pinch zoom + drag pan
+ */
+function baseLineOptions(scales, opts = {}) {
+  const plugins = {
+    legend: { labels: { color: CHART_COLORS.text, boxWidth: 14, font: { size: 11 } } },
+    tooltip: {
+      callbacks: {
+        title: (items) => items.length ? `${Number(items[0].parsed.x).toFixed(1)} min` : ''
+      }
+    }
+  };
+  if (opts.zoom && ZOOM_AVAILABLE) {
+    // Zoom/pan the time (x) axis only; the concentration axis auto-scales.
+    plugins.zoom = {
+      pan: { enabled: true, mode: 'x' },
+      zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+      limits: { x: { min: 'original', max: 'original' } }
+    };
+  }
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     animation: false,
     elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0.15 } },
-    plugins: {
-      legend: { labels: { color: CHART_COLORS.text, boxWidth: 14, font: { size: 11 } } },
-      tooltip: {
-        callbacks: {
-          title: (items) => items.length ? `${Number(items[0].parsed.x).toFixed(1)} min` : ''
-        }
-      }
-    },
+    plugins,
     scales
   };
 }
@@ -49,6 +71,12 @@ class MultiLineChart {
     this.canvas = document.getElementById(canvasId);
     this.axes = axes;
     this.chart = null;
+    // double-click resets any zoom/pan back to the full time range
+    if (this.canvas && ZOOM_AVAILABLE) {
+      this.canvas.addEventListener('dblclick', () => {
+        if (this.chart && this.chart.resetZoom) this.chart.resetZoom();
+      });
+    }
   }
 
   _scales() {
@@ -93,11 +121,13 @@ class MultiLineChart {
       this.chart.data.datasets = datasets;
       this.chart.options.scales = this._scales();
       this.chart.update();
+      // new data → show the full new time range rather than a stale zoom window
+      if (this.chart.resetZoom) this.chart.resetZoom('none');
     } else {
       this.chart = new Chart(this.canvas.getContext('2d'), {
         type: 'line',
         data: { datasets },
-        options: baseLineOptions(this._scales())
+        options: baseLineOptions(this._scales(), { zoom: true })
       });
     }
   }
