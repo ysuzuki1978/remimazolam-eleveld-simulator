@@ -194,13 +194,19 @@ body {
 .rec-lbl { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 3px; }
 .rec-val { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; color: var(--text); }
 .rec-val.unreachable { font-size: 0.8rem; font-weight: 600; color: var(--text-faint); }
+.rec-note {
+  font-size: 0.68rem; color: var(--text-dim); line-height: 1.45;
+  border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px;
+}
 .rec-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 6px 0; border-top: 1px solid var(--border);
 }
+.rec-ctrl-wrap { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rec-sub { font-size: 0.68rem; color: var(--text-faint); font-family: var(--mono); }
 .rec-ctrl {
   display: flex; align-items: center; gap: 8px;
-  font-size: 0.74rem; color: var(--text-dim); flex: 1; min-width: 0;
+  font-size: 0.74rem; color: var(--text-dim); min-width: 0;
 }
 .rec-ctrl input[type="range"] { flex: 1; min-width: 80px; accent-color: var(--primary); }
 .rec-ctrl input[type="number"] {

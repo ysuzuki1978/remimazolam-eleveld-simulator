@@ -38,16 +38,23 @@ class RecoveryPanel {
         <div class="rec-cell awake"><div class="rec-lbl">MOAA/S ≥ 4 (responds)</div><div class="rec-val" data-k="moaas">—</div></div>
         <div class="rec-cell awake"><div class="rec-lbl">BIS ≥ 70 (awake)</div><div class="rec-val" data-k="bis">—</div></div>
       </div>
+      <div class="rec-note">Effect-site Ce (BIS site) after the infusion stops. −% = time for Ce to fall by that fraction (50 % = context-sensitive half-time); target = time for Ce to fall to the value you type.</div>
       <div class="rec-row">
-        <label class="rec-ctrl">Ce (BIS) −<output data-el="decOut">50</output>%
-          <input type="range" data-el="dec" min="20" max="95" step="5" value="50">
-        </label>
+        <div class="rec-ctrl-wrap">
+          <label class="rec-ctrl">Ce −<output data-el="decOut">50</output>%
+            <input type="range" data-el="dec" min="20" max="95" step="5" value="50">
+          </label>
+          <span class="rec-sub" data-el="decConc">—</span>
+        </div>
         <div class="rec-val" data-k="dec">—</div>
       </div>
       <div class="rec-row">
-        <label class="rec-ctrl">Ce (BIS) → target
-          <input type="number" data-el="tgt" min="0" step="0.05" value="0.30"> µg/mL
-        </label>
+        <div class="rec-ctrl-wrap">
+          <label class="rec-ctrl">Ce → target
+            <input type="number" data-el="tgt" min="0" step="0.05" value="0.30"> µg/mL
+          </label>
+          <span class="rec-sub" data-el="tgtConc">—</span>
+        </div>
         <div class="rec-val" data-k="tgt">—</div>
       </div>`;
 
@@ -57,6 +64,8 @@ class RecoveryPanel {
       dec: q('[data-el="dec"]'),
       decOut: q('[data-el="decOut"]'),
       tgt: q('[data-el="tgt"]'),
+      decConc: q('[data-el="decConc"]'),
+      tgtConc: q('[data-el="tgtConc"]'),
       vMoaas: q('.rec-val[data-k="moaas"]'),
       vBis: q('.rec-val[data-k="bis"]'),
       vDec: q('.rec-val[data-k="dec"]'),
@@ -115,6 +124,8 @@ class RecoveryPanel {
     if (!sp || !sp.state) {
       this.ui.from.textContent = 'no plan yet';
       ['vMoaas', 'vBis', 'vDec', 'vTgt'].forEach(k => { this.ui[k].textContent = '—'; this.ui[k].classList.remove('unreachable'); });
+      this.ui.decConc.textContent = '—';
+      this.ui.tgtConc.textContent = '—';
       return;
     }
     this.ui.from.textContent = this.hoverIdx !== null
@@ -132,6 +143,11 @@ class RecoveryPanel {
     this.ui.vMoaas.textContent = fmtDur(r.toMoaas);
     this.ui.vBis.textContent = fmtDur(r.toBis);
     this.ui.vDec.textContent = fmtDur(r.toCeDecrement);
+
+    // (case 1) show the absolute concentrations behind each Ce prediction
+    this.ui.decConc.textContent = `${r.ce0.toFixed(2)} → ${(r.ce0 * (1 - decFrac)).toFixed(2)} µg/mL`;
+    this.ui.tgtConc.textContent = `now ${r.ce0.toFixed(2)} µg/mL`;
+
     if (ceAbs == null) {
       this.ui.vTgt.textContent = '—';
       this.ui.vTgt.classList.remove('unreachable');
