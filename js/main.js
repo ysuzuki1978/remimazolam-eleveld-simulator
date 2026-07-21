@@ -580,6 +580,61 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+/* ================================================================== */
+/* Model / metric info popups (S? — model-info-popup)                  */
+/* ================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.InfoPopup) return;
+
+  const MODEL_INFO = `
+    <h4>Eleveld 2025 remimazolam PK-PD</h4>
+    <p class="ip-cite">Eleveld DJ, Colin PJ, van den Berg JP, Koomen JV, Stoehr T, Struys MMRF.
+      Development and analysis of a remimazolam pharmacokinetics and pharmacodynamics model with
+      proposed dosing and concentrations for anaesthesia and sedation. <i>Br J Anaesth</i> 2025;135(1):206-217.</p>
+    <p class="ip-links">
+      <a href="https://doi.org/10.1016/j.bja.2025.02.038" target="_blank" rel="noopener">doi:10.1016/j.bja.2025.02.038</a>
+      · <a href="https://pubmed.ncbi.nlm.nih.gov/40312166/" target="_blank" rel="noopener">PMID 40312166</a>
+      · CC BY 4.0</p>
+    <h5>Structure</h5>
+    <ul>
+      <li>Remimazolam: 3-compartment PK + two effect sites (BIS ke0 0.145, MOAA/S ke0 0.298 min⁻¹).</li>
+      <li>Active metabolite <b>CNS7054</b> (depot → 2-compartment); its plasma concentration
+        <b>competitively antagonises</b> the BIS / MOAA/S effect, so the Ce needed to hold a given
+        depth rises as it accumulates (<b>tolerance</b>).</li>
+    </ul>
+    <h5>Reference individual (70 kg, 35 yr, male, no opioid)</h5>
+    <ul class="ip-params">
+      <li>V1 4.31 L · CL 1.12 L/min</li>
+      <li>ke0 BIS 0.145 · MOAA/S 0.298 min⁻¹</li>
+      <li>Ce50 (BIS) 0.982 µg/mL · BIS baseline 93.7</li>
+    </ul>
+    <h5>Covariates</h5>
+    <p>Age, weight, sex, opioid co-administration, hepatic (Pugh-Child &gt; 8), renal (ESRD).</p>
+    <p class="ip-warn">Population means; inter-individual variability is large. Predictions below
+      BIS 50 are biased (benzodiazepine ceiling) — treat deep values as indicative only.</p>`;
+
+  const BIS_INFO = `
+    <h4>Predicted BIS</h4>
+    <p>Bispectral index, 0–100 (awake ≈ 93.7 baseline; surgical anaesthesia ≈ 40–60).
+      Driven by the BIS effect-site Ce, antagonised by the metabolite.</p>
+    <p class="ip-warn">The authors report population predictions are biased <b>below BIS 50</b>
+      (benzodiazepine ceiling effect). Treat deep-range values as indicative only.</p>`;
+
+  const MOAAS_INFO = `
+    <h4>MOAA/S (probability-weighted)</h4>
+    <p>Modified Observer's Assessment of Alertness/Sedation, 0–5, shown as the
+      probability-weighted mean of the proportional-odds model.</p>
+    <ul>
+      <li>5 = responds readily to name (awake)</li>
+      <li>3–4 = light / procedural sedation</li>
+      <li>≤ 1 = loss of consciousness · 0 = anaesthesia</li>
+    </ul>`;
+
+  InfoPopup.attach(document.getElementById('modelInfoIco'), MODEL_INFO);
+  InfoPopup.attach(document.getElementById('bisInfoIco'), BIS_INFO);
+  InfoPopup.attach(document.getElementById('moaasInfoIco'), MOAAS_INFO);
+});
+
 /* -------- service worker + update detection -------- */
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   let userInitiatedUpdate = false;
