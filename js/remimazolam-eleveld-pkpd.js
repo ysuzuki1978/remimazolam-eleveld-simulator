@@ -255,6 +255,75 @@ const EleveldRemimazolam = (() => {
   }
 
   /**
+   * Recovery prediction: from a state y0 with the infusion STOPPED, integrate
+   * forward and find the time (min) to each recovery endpoint. This is the
+   * "if I stop the infusion now, when does the patient recover?" question, and
+   * because the metabolite CNS7054 competitively antagonises the effect, its
+   * (still-rising, then falling) concentration is carried through the washout.
+   *
+   * Endpoints (each null if not reached within maxMin):
+   *   - toMoaas:       MOAA/S (probability-weighted) rises to >= moaasTarget
+   *   - toBis:         predicted BIS rises to >= bisTarget
+   *   - toCeDecrement: effect-site Ce falls to (1 - ceDecFraction) x its stop value
+   *   - toCeTarget:    effect-site Ce falls to the absolute ceAbsTarget (µg/mL)
+   *
+   * The effect-site used for the two Ce endpoints is selected by ceSite
+   * ('bis' -> ke0 0.145 slot, 'moaas' -> ke0 0.298 slot). Awakening endpoints
+   * are effect-model outputs and do not depend on ceSite.
+   *
+   * @param {number[]} y0
+   * @param {Object} p   params from computeParameters
+   * @param {Object} [opts] { moaasTarget=4, bisTarget=70, ceDecFraction=0.5,
+   *                          ceAbsTarget=null, ceSite='bis', dt=0.25, maxMin=720 }
+   * @returns {{ce0:number, ceSite:string, ceUnreachable:boolean,
+   *            toMoaas:?number, toBis:?number, toCeDecrement:?number, toCeTarget:?number}}
+   */
+  function predictRecovery(y0, p, opts = {}) {
+    const dt = opts.dt != null ? opts.dt : 0.25;
+    const maxMin = opts.maxMin != null ? opts.maxMin : 720;
+    const ceIdx = opts.ceSite === 'moaas' ? 6 : 7;
+    const moaasTarget = opts.moaasTarget != null ? opts.moaasTarget : 4;
+    const bisTarget = opts.bisTarget != null ? opts.bisTarget : 70;
+    const decFrac = opts.ceDecFraction != null ? opts.ceDecFraction : null;
+    const ceAbs = opts.ceAbsTarget != null ? opts.ceAbsTarget : null;
+
+    let y = y0.slice();
+    const ce0 = y[ceIdx];
+    const decThreshold = decFrac != null ? ce0 * (1 - decFrac) : null;
+    // an absolute Ce target at or above the current Ce cannot be reached by
+    // washout alone (concentration only falls once the infusion is off)
+    const ceUnreachable = ceAbs != null && ceAbs >= ce0;
+
+    const res = {
+      ce0, ceSite: opts.ceSite === 'moaas' ? 'moaas' : 'bis', ceUnreachable,
+      toMoaas: null, toBis: null, toCeDecrement: null, toCeTarget: null
+    };
+
+    const o0 = observe(y, p);
+    if (o0.moaasWeighted >= moaasTarget) res.toMoaas = 0;
+    if (o0.bis >= bisTarget) res.toBis = 0;
+    if (decThreshold != null && y[ceIdx] <= decThreshold) res.toCeDecrement = 0;
+    if (ceAbs != null && !ceUnreachable && y[ceIdx] <= ceAbs) res.toCeTarget = 0;
+
+    const done = () =>
+      res.toMoaas != null && res.toBis != null &&
+      (decThreshold == null || res.toCeDecrement != null) &&
+      (ceAbs == null || ceUnreachable || res.toCeTarget != null);
+
+    const steps = Math.round(maxMin / dt);
+    for (let s = 1; s <= steps && !done(); s++) {
+      y = step(y, 0, dt, p);
+      const t = s * dt;
+      const o = observe(y, p);
+      if (res.toMoaas == null && o.moaasWeighted >= moaasTarget) res.toMoaas = t;
+      if (res.toBis == null && o.bis >= bisTarget) res.toBis = t;
+      if (res.toCeDecrement == null && decThreshold != null && y[ceIdx] <= decThreshold) res.toCeDecrement = t;
+      if (res.toCeTarget == null && ceAbs != null && !ceUnreachable && y[ceIdx] <= ceAbs) res.toCeTarget = t;
+    }
+    return res;
+  }
+
+  /**
    * Forward-simulate a list of dose events.
    * Semantics: each DoseEvent applies its bolus at event time and SETS the
    * continuous infusion rate (mg/hr) from that time forward.
@@ -284,7 +353,9 @@ const EleveldRemimazolam = (() => {
 
     const record = (t, inf) => {
       const o = observe(y, p);
-      points.push({ timeMin: t, infusionMgHr: inf * 60, ...o });
+      // keep the full state so recovery ("stop infusion now") can be predicted
+      // forward from any sampled time — see predictRecovery().
+      points.push({ timeMin: t, infusionMgHr: inf * 60, state: y.slice(), ...o });
     };
 
     for (let s = 0; s <= totalSteps; s++) {
@@ -311,6 +382,7 @@ const EleveldRemimazolam = (() => {
     moaasFromCe,
     requiredCeForBIS,
     requiredCeForMoaas,
+    predictRecovery,
     simulate
   };
 })();

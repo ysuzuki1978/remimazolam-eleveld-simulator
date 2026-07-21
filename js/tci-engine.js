@@ -101,7 +101,8 @@ const TciEngine = (() => {
       if (rHr > peakRateMgHr) peakRateMgHr = rHr;
 
       if (c % sampleEvery === 0) {
-        points.push({ timeMin: tMin, infusionMgHr: rHr, targetCe, bolusMg: c === 0 ? loadingBolusMg : 0, ...obs });
+        // keep the full state so the recovery panel can predict "stop now"
+        points.push({ timeMin: tMin, infusionMgHr: rHr, targetCe, bolusMg: c === 0 ? loadingBolusMg : 0, state: y.slice(), ...obs });
       }
 
       if (c < totalCtrl) {

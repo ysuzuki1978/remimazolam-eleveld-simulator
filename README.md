@@ -35,6 +35,13 @@ Three modes:
    the patient). The simulation runs until **120 min after the last event**, and the full time course is
    plotted and exported to CSV.
 
+**Recovery prediction** (TCI & Monitoring result charts): a panel answers *"if the infusion stops now, when does
+the patient recover?"* — time to **MOAA/S ≥ 4** and **BIS ≥ 70** (awakening), time for the effect-site Ce to fall
+by a chosen **% (50 % ≈ context-sensitive half-time)**, and time to reach an **absolute target Ce** you type.
+Hovering the chart moves the stop point to that time (*"from MM:SS"*), so induction / maintenance / pre-wake
+scenarios can be compared. The accumulated metabolite (CNS7054) is carried through the washout, so tolerance is
+reflected. Charts also support **wheel / pinch zoom and drag pan** (double-click resets).
+
 Covariates: age, weight, sex, opioid co-administration, hepatic function (Pugh-Child > 8), renal function (ESRD).
 
 When a new version is published, an "A new version is available" banner appears at the bottom of the app;
@@ -71,8 +78,8 @@ python3 -m http.server 8000   # = npm run serve
 ## Model validation
 
 ```bash
-npm run validate          # = model + TCI test suites (75 checks)
-node validation/validate-model.js   # PK-PD core (47 checks)
+npm run validate          # = model + TCI test suites (83 checks)
+node validation/validate-model.js   # PK-PD core + recovery prediction (55 checks)
 node validation/validate-tci.js     # TCI: effect-site Ce / BIS / MOAA/S targets (28 checks)
 ```
 

@@ -139,6 +139,7 @@ const App = (() => {
 const MonitoringController = (() => {
   const engine = new MonitoringEngine();
   let chartConc = null, chartMoaas = null;
+  let recovery = null;
   let lastResult = null;
 
   function startTime() {
@@ -240,6 +241,13 @@ const MonitoringController = (() => {
     chartMoaas.render(pts, [
       { key: 'moaasWeighted', label: 'Prob.-weighted MOAA/S', color: CHART_COLORS.moaas, axis: 'left' }
     ]);
+
+    // recovery ("stop infusion now") panel, driven by the concentration chart hover
+    if (window.RecoveryPanel && result.simPoints) {
+      if (!recovery) recovery = new RecoveryPanel('monRecovery');
+      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis' });
+      recovery.bindChart(chartConc.chart);
+    }
   }
 
   function exportCsv() {
@@ -391,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => InductionController.init());
 /* ================================================================== */
 const TciController = (() => {
   let chartConc = null, chartRate = null;
+  let recovery = null;
   let lastResult = null, lastMode = 'ce';
   const LOC_MARGIN = 0.15;   // target Ce = LOC Ce + 0.15 µg/mL
 
@@ -492,6 +501,13 @@ const TciController = (() => {
     // infusion rate chart
     if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: 'Infusion rate (mg/hr)', min: 0 } });
     chartRate.render(pts, [{ key: 'infusionMgHr', label: 'Infusion rate', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
+
+    // recovery ("stop infusion now") panel, driven by the concentration chart hover
+    if (window.RecoveryPanel && result.params) {
+      if (!recovery) recovery = new RecoveryPanel('tciRecovery');
+      recovery.setData({ points: pts, params: result.params, ceSite: 'bis' });
+      recovery.bindChart(chartConc.chart);
+    }
 
     // loading-bolus note
     document.getElementById('tciBolusNote').innerHTML =
