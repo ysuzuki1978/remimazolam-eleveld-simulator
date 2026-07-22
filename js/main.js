@@ -15,6 +15,11 @@ const App = (() => {
   let locCe = null;
   const locCeListeners = [];
 
+  /** ROC (return-of-consciousness) effect-site Ce (µg/mL): a personalised
+   *  wake-up threshold recorded by the user, used by the recovery panel. */
+  let rocCe = null;
+  const rocCeListeners = [];
+
   /* -------- pub/sub -------- */
   function onPatientChange(fn) { patientListeners.push(fn); }
   function emitPatientChange() { patientListeners.forEach(fn => { try { fn(patient); } catch (e) { console.error(e); } }); }
@@ -23,6 +28,10 @@ const App = (() => {
   function onLocCeChange(fn) { locCeListeners.push(fn); }
   function setLocCe(ce) { locCe = ce; locCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
   function getLocCe() { return locCe; }
+
+  function onRocCeChange(fn) { rocCeListeners.push(fn); }
+  function setRocCe(ce) { rocCe = ce; rocCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
+  function getRocCe() { return rocCe; }
 
   /* -------- patient summary -------- */
   function renderPatientSummary() {
@@ -130,7 +139,8 @@ const App = (() => {
     emitPatientChange();
   }
 
-  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe };
+  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe,
+           onRocCeChange, setRocCe, getRocCe };
 })();
 
 /* ================================================================== */
@@ -242,10 +252,10 @@ const MonitoringController = (() => {
       { key: 'moaasWeighted', label: 'Prob.-weighted MOAA/S', color: CHART_COLORS.moaas, axis: 'left' }
     ]);
 
-    // recovery ("stop infusion now") panel, driven by the concentration chart hover
+    // emergence-forecast panel, driven by the concentration chart hover
     if (window.RecoveryPanel && result.simPoints) {
-      if (!recovery) recovery = new RecoveryPanel('monRecovery');
-      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis' });
+      if (!recovery) { recovery = new RecoveryPanel('monRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
+      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
       recovery.bindChart(chartConc.chart);
     }
   }
@@ -293,6 +303,7 @@ const InductionController = (() => {
     document.getElementById('indPauseBtn').disabled = !running;
     document.getElementById('indBolusBtn').disabled = !engine.state;
     document.getElementById('indRecordBtn').disabled = !engine.state;
+    document.getElementById('indRocBtn').disabled = !engine.state;
   }
 
   function onUpdate(s) {
@@ -343,6 +354,17 @@ const InductionController = (() => {
     App.setLocCe(s.ceBis);
   }
 
+  // Record the current effect-site (BIS site) Ce as the return-of-consciousness
+  // (ROC) threshold — a personalised wake-up Ce for the recovery panel.
+  function recordRoc() {
+    const s = engine.observe();
+    if (!s) return;
+    App.setRocCe(s.ceBis);
+    const note = document.getElementById('indRocNote');
+    note.classList.remove('hidden');
+    note.innerHTML = `ROC recorded: <b>${s.ceBis.toFixed(3)} µg/mL</b> (effect-site) at ${engine.elapsedMin.toFixed(1)} min — used as the wake-up threshold in the recovery panel.`;
+  }
+
   // default induction bolus = 0.1 mg/kg of the current patient
   function applyDefaultBolus() {
     const p = App.getPatient();
@@ -363,6 +385,8 @@ const InductionController = (() => {
     locSnapshots.length = 0;
     renderLoc();
     App.setLocCe(null);
+    App.setRocCe(null);
+    document.getElementById('indRocNote').classList.add('hidden');
     applyDefaultBolus();
     if (chart) chart.reset();
     document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
@@ -374,6 +398,7 @@ const InductionController = (() => {
     setRunningUI(false);
     document.getElementById('indBolusBtn').disabled = true;
     document.getElementById('indRecordBtn').disabled = true;
+    document.getElementById('indRocBtn').disabled = true;
   }
 
   function init() {
@@ -382,6 +407,7 @@ const InductionController = (() => {
     document.getElementById('indPauseBtn').addEventListener('click', pause);
     document.getElementById('indBolusBtn').addEventListener('click', giveBolus);
     document.getElementById('indRecordBtn').addEventListener('click', record);
+    document.getElementById('indRocBtn').addEventListener('click', recordRoc);
     document.getElementById('indResetBtn').addEventListener('click', reset);
     document.getElementById('indCont').addEventListener('change', (e) => engine.setContinuous(parseFloat(e.target.value) || 0));
     // reset induction when patient changes
@@ -502,10 +528,10 @@ const TciController = (() => {
     if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: 'Infusion rate (mg/hr)', min: 0 } });
     chartRate.render(pts, [{ key: 'infusionMgHr', label: 'Infusion rate', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
 
-    // recovery ("stop infusion now") panel, driven by the concentration chart hover
+    // emergence-forecast panel, driven by the concentration chart hover
     if (window.RecoveryPanel && result.params) {
-      if (!recovery) recovery = new RecoveryPanel('tciRecovery');
-      recovery.setData({ points: pts, params: result.params, ceSite: 'bis' });
+      if (!recovery) { recovery = new RecoveryPanel('tciRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
+      recovery.setData({ points: pts, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
       recovery.bindChart(chartConc.chart);
     }
 

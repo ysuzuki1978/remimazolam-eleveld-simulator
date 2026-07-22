@@ -174,7 +174,7 @@ body {
   margin: -2px 0 8px; user-select: none;
 }
 
-/* ---------------- Recovery panel ---------------- */
+/* ---------------- Emergence forecast panel ---------------- */
 .recovery {
   background: var(--bg); border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm); padding: 12px 14px; margin: 8px 0 4px;
@@ -188,33 +188,46 @@ body {
 .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .rec-cell {
   background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 8px 10px;
+  border-radius: var(--radius-sm); padding: 9px 11px;
 }
 .rec-cell.awake { border-left: 3px solid var(--success); }
-.rec-lbl { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 3px; }
-.rec-val { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; color: var(--text); }
-.rec-val.unreachable { font-size: 0.8rem; font-weight: 600; color: var(--text-faint); }
-.rec-note {
-  font-size: 0.68rem; color: var(--text-dim); line-height: 1.45;
-  border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px;
+.rec-cell.wake { border-left: 3px solid var(--primary); }
+.rec-lbl { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; }
+.rec-cell-sub { color: var(--text-faint); font-family: var(--mono); }
+.rec-val { font-family: var(--mono); font-size: 1.25rem; font-weight: 700; color: var(--text); }
+.rec-cell .rec-val { font-size: 1.25rem; }
+.rec-val.unreachable { font-size: 0.85rem; font-weight: 600; color: var(--text-faint); }
+
+/* recorded ROC input */
+.rec-roc {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 8px 0; border-top: 1px solid var(--border);
 }
-.rec-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 6px 0; border-top: 1px solid var(--border);
-}
-.rec-ctrl-wrap { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.rec-sub { font-size: 0.68rem; color: var(--text-faint); font-family: var(--mono); }
-.rec-ctrl {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.74rem; color: var(--text-dim); min-width: 0;
-}
-.rec-ctrl input[type="range"] { flex: 1; min-width: 80px; accent-color: var(--primary); }
-.rec-ctrl input[type="number"] {
-  width: 72px; padding: 5px 7px; font-size: 0.85rem; font-family: var(--mono);
+.rec-roc .rec-ctrl { font-size: 0.78rem; color: var(--text); }
+.rec-roc input[type="number"] {
+  width: 82px; padding: 5px 8px; font-size: 0.9rem; font-family: var(--mono);
   background: var(--bg-elev); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: 6px;
 }
-.rec-ctrl output { font-family: var(--mono); color: var(--text); min-width: 1.6em; text-align: right; }
+
+/* secondary (PK decrement) row */
+.rec-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 8px 0 0; border-top: 1px solid var(--border);
+}
+.rec-secondary .rec-val { font-size: 0.95rem; font-weight: 600; color: var(--text-dim); }
+.rec-ctrl-wrap { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.rec-ctrl-lbl { font-size: 0.72rem; color: var(--text-dim); }
+.rec-muted { color: var(--text-faint); }
+.rec-sub { font-size: 0.68rem; color: var(--text-faint); font-family: var(--mono); }
+.rec-ctrl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rec-chips { display: inline-flex; gap: 6px; }
+.rec-chip {
+  padding: 3px 10px; font-size: 0.74rem; font-family: var(--mono);
+  background: var(--bg-elev); color: var(--text-dim);
+  border: 1px solid var(--border-strong); border-radius: 999px; cursor: pointer;
+}
+.rec-chip.active { background: var(--primary-dim); color: #fff; border-color: var(--primary); }
 .rec-row .rec-val { white-space: nowrap; }
 @media (max-width: 560px) { .rec-grid { grid-template-columns: 1fr; } }
 

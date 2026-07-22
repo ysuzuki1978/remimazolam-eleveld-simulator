@@ -264,19 +264,25 @@ const EleveldRemimazolam = (() => {
    * Endpoints (each null if not reached within maxMin):
    *   - toMoaas:       MOAA/S (probability-weighted) rises to >= moaasTarget
    *   - toBis:         predicted BIS rises to >= bisTarget
+   *   - toCeWake:      effect-site Ce falls to/below ceWakeTarget — a recorded
+   *                    return-of-consciousness (ROC) Ce used as a personalised
+   *                    wake-up threshold. If Ce is already <= ceWakeTarget the
+   *                    time is 0 (already at/below the wake threshold).
    *   - toCeDecrement: effect-site Ce falls to (1 - ceDecFraction) x its stop value
    *   - toCeTarget:    effect-site Ce falls to the absolute ceAbsTarget (µg/mL)
    *
-   * The effect-site used for the two Ce endpoints is selected by ceSite
+   * The effect-site used for the Ce endpoints is selected by ceSite
    * ('bis' -> ke0 0.145 slot, 'moaas' -> ke0 0.298 slot). Awakening endpoints
    * are effect-model outputs and do not depend on ceSite.
    *
    * @param {number[]} y0
    * @param {Object} p   params from computeParameters
-   * @param {Object} [opts] { moaasTarget=4, bisTarget=70, ceDecFraction=0.5,
-   *                          ceAbsTarget=null, ceSite='bis', dt=0.25, maxMin=720 }
-   * @returns {{ce0:number, ceSite:string, ceUnreachable:boolean,
-   *            toMoaas:?number, toBis:?number, toCeDecrement:?number, toCeTarget:?number}}
+   * @param {Object} [opts] { moaasTarget=4, bisTarget=70, ceWakeTarget=null,
+   *                          ceDecFraction=0.5, ceAbsTarget=null, ceSite='bis',
+   *                          dt=0.25, maxMin=720 }
+   * @returns {{ce0:number, ceSite:string, ceUnreachable:boolean, alreadyAwakeByCe:boolean,
+   *            toMoaas:?number, toBis:?number, toCeWake:?number,
+   *            toCeDecrement:?number, toCeTarget:?number}}
    */
   function predictRecovery(y0, p, opts = {}) {
     const dt = opts.dt != null ? opts.dt : 0.25;
@@ -286,6 +292,7 @@ const EleveldRemimazolam = (() => {
     const bisTarget = opts.bisTarget != null ? opts.bisTarget : 70;
     const decFrac = opts.ceDecFraction != null ? opts.ceDecFraction : null;
     const ceAbs = opts.ceAbsTarget != null ? opts.ceAbsTarget : null;
+    const ceWake = opts.ceWakeTarget != null ? opts.ceWakeTarget : null;
 
     let y = y0.slice();
     const ce0 = y[ceIdx];
@@ -293,20 +300,25 @@ const EleveldRemimazolam = (() => {
     // an absolute Ce target at or above the current Ce cannot be reached by
     // washout alone (concentration only falls once the infusion is off)
     const ceUnreachable = ceAbs != null && ceAbs >= ce0;
+    // a ROC wake threshold at/above the current Ce means the patient is already
+    // at/below the wake concentration -> should already be emerging (time 0)
+    const alreadyAwakeByCe = ceWake != null && ce0 <= ceWake;
 
     const res = {
-      ce0, ceSite: opts.ceSite === 'moaas' ? 'moaas' : 'bis', ceUnreachable,
-      toMoaas: null, toBis: null, toCeDecrement: null, toCeTarget: null
+      ce0, ceSite: opts.ceSite === 'moaas' ? 'moaas' : 'bis', ceUnreachable, alreadyAwakeByCe,
+      toMoaas: null, toBis: null, toCeWake: null, toCeDecrement: null, toCeTarget: null
     };
 
     const o0 = observe(y, p);
     if (o0.moaasWeighted >= moaasTarget) res.toMoaas = 0;
     if (o0.bis >= bisTarget) res.toBis = 0;
+    if (ceWake != null && y[ceIdx] <= ceWake) res.toCeWake = 0;
     if (decThreshold != null && y[ceIdx] <= decThreshold) res.toCeDecrement = 0;
     if (ceAbs != null && !ceUnreachable && y[ceIdx] <= ceAbs) res.toCeTarget = 0;
 
     const done = () =>
       res.toMoaas != null && res.toBis != null &&
+      (ceWake == null || res.toCeWake != null) &&
       (decThreshold == null || res.toCeDecrement != null) &&
       (ceAbs == null || ceUnreachable || res.toCeTarget != null);
 
@@ -317,6 +329,7 @@ const EleveldRemimazolam = (() => {
       const o = observe(y, p);
       if (res.toMoaas == null && o.moaasWeighted >= moaasTarget) res.toMoaas = t;
       if (res.toBis == null && o.bis >= bisTarget) res.toBis = t;
+      if (res.toCeWake == null && ceWake != null && y[ceIdx] <= ceWake) res.toCeWake = t;
       if (res.toCeDecrement == null && decThreshold != null && y[ceIdx] <= decThreshold) res.toCeDecrement = t;
       if (res.toCeTarget == null && ceAbs != null && !ceUnreachable && y[ceIdx] <= ceAbs) res.toCeTarget = t;
     }

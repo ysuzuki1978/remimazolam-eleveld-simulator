@@ -193,6 +193,13 @@ console.log('\n=== 6. Recovery prediction (predictRecovery, infusion stopped) ==
   const rUp = M.predictRecovery(end.state, params, { ceSite: 'bis', ceAbsTarget: end.ceBis + 0.5 });
   check('Ce target above current is unreachable by washout', rUp.ceUnreachable === true && rUp.toCeTarget === null);
 
+  // ROC wake threshold: Ce falls to a recorded return-of-consciousness Ce
+  const roc = 0.25;
+  const rRoc = M.predictRecovery(end.state, params, { ceSite: 'bis', ceWakeTarget: roc });
+  check('ROC below current Ce -> finite wake time', Number.isFinite(rRoc.toCeWake) && rRoc.toCeWake > 0, `(${rRoc.toCeWake} min to Ce=${roc})`);
+  const rRocHi = M.predictRecovery(end.state, params, { ceSite: 'bis', ceWakeTarget: end.ceBis + 0.2 });
+  check('ROC at/above current Ce -> already awake (0 min)', rRocHi.alreadyAwakeByCe === true && rRocHi.toCeWake === 0);
+
   // drug-naive state: already awake at t=0 (times = 0)
   const r0 = M.predictRecovery(M.createInitialState(), params, { ceSite: 'bis' });
   check('drug-naive state is already awake (0 min)', r0.toMoaas === 0 && r0.toBis === 0);
