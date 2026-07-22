@@ -1,6 +1,6 @@
 {
   "name": "remimazolam-eleveld-simulator",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Remimazolam PK-PD TCI simulator (Eleveld 2025): effect-site concentration, predicted BIS and MOAA/S, with effect-site / BIS-target dosing planning.",
   "license": "Apache-2.0",
   "author": "Yasuyuki Suzuki",

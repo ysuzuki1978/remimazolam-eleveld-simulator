@@ -209,6 +209,11 @@ body {
   background: var(--bg-elev); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: 6px;
 }
+.rec-roc-src {
+  display: none; font-size: 0.66rem; color: var(--warning);
+  font-family: var(--font); font-style: italic;
+}
+.rec-roc-src.shown { display: inline; }
 
 /* secondary (PK decrement) row */
 .rec-row {

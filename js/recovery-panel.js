@@ -30,6 +30,8 @@ class RecoveryPanel {
     this.chart = null;
     this.hoverIdx = null;      // index of the hovered sample point (null = end of run)
     this.decFrac = 0.5;        // selected Ce-decrement fraction (0.5 / 0.75 / 0.9)
+    this.rocTouched = false;   // true once ROC is recorded or the field is typed
+    this.seedLoc = null;       // recorded LOC Ce, used to seed the wake threshold
     this._build();
   }
 
@@ -52,10 +54,11 @@ class RecoveryPanel {
         </div>
       </div>
       <div class="rec-roc">
-        <label class="rec-ctrl">Recorded ROC Ce
+        <label class="rec-ctrl">Wake-up Ce (ROC)
           <input type="number" data-el="roc" min="0" step="0.01" placeholder="—"> µg/mL
+          <span class="rec-roc-src" data-el="rocSrc"></span>
         </label>
-        <span class="rec-sub" data-el="rocHint">Record it on the Induction tab, or type the effect-site Ce at which your patient woke.</span>
+        <span class="rec-sub" data-el="rocHint">Record ROC on the Induction tab, or type the effect-site Ce at which your patient woke. Until then it is seeded from the recorded LOC Ce.</span>
       </div>
       <div class="rec-row rec-secondary">
         <div class="rec-ctrl-wrap">
@@ -75,6 +78,7 @@ class RecoveryPanel {
       from: q('[data-el="from"]'),
       roc: q('[data-el="roc"]'),
       rocHint: q('[data-el="rocHint"]'),
+      rocSrc: q('[data-el="rocSrc"]'),
       rocTileSub: q('[data-el="rocTileSub"]'),
       chips: q('[data-el="chips"]'),
       decConc: q('[data-el="decConc"]'),
@@ -82,7 +86,12 @@ class RecoveryPanel {
       vWake: q('.rec-val[data-k="wake"]'),
       vDec: q('.rec-val[data-k="dec"]')
     };
-    this.ui.roc.addEventListener('input', () => this.update());
+    // typing marks the value as user-set, so an incoming LOC no longer seeds it
+    this.ui.roc.addEventListener('input', () => {
+      this.rocTouched = this.ui.roc.value.trim() !== '';
+      this._setSrcTag(null);
+      this.update();
+    });
     this.ui.chips.querySelectorAll('.rec-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         this.ui.chips.querySelectorAll('.rec-chip').forEach(c => c.classList.remove('active'));
@@ -93,23 +102,50 @@ class RecoveryPanel {
     });
   }
 
-  /** @param {{points:Object[], params:Object, ceSite?:string, rocCe?:number}} data */
+  /** @param {{points:Object[], params:Object, ceSite?:string, rocCe?:number, locCe?:number}} data */
   setData(data) {
     this.data = data && data.points && data.points.length ? { ceSite: 'bis', ...data } : null;
     this.hoverIdx = null;
-    // pre-fill the ROC field from a value recorded before this panel existed,
-    // but never clobber a value the user has already typed
-    if (data && data.rocCe != null && this.ui && this.ui.roc.value === '') {
-      this.ui.roc.value = (+data.rocCe).toFixed(3);
+    if (data) {
+      if (data.locCe != null) this.seedLoc = +data.locCe;
+      // an actual recorded ROC wins; otherwise seed the wake threshold from LOC
+      // (never clobbering a value the user has already recorded/typed)
+      if (data.rocCe != null) { this.rocTouched = true; this._setRocField(data.rocCe, 'roc'); }
+      else if (!this.rocTouched) this._applySeed();
     }
     this.update();
   }
 
-  /** Set the recorded ROC Ce (called when the user records ROC in induction). */
+  /** Recorded ROC Ce (authoritative). null clears back to the LOC seed. */
   setRoc(ce) {
     if (!this.ui) return;
-    this.ui.roc.value = (ce == null || !Number.isFinite(+ce)) ? '' : (+ce).toFixed(3);
+    if (ce == null || !Number.isFinite(+ce)) { this.rocTouched = false; this._applySeed(); }
+    else { this.rocTouched = true; this._setRocField(ce, 'roc'); }
     this.update();
+  }
+
+  /** Recorded LOC Ce — seeds the wake threshold until a real ROC is set. */
+  setLoc(ce) {
+    if (!this.ui) return;
+    this.seedLoc = (ce == null || !Number.isFinite(+ce)) ? null : +ce;
+    if (!this.rocTouched) this._applySeed();
+    this.update();
+  }
+
+  _applySeed() {
+    if (this.seedLoc != null) this._setRocField(this.seedLoc, 'loc');
+    else this._setRocField(null, null);
+  }
+
+  _setRocField(value, source) {
+    this.ui.roc.value = (value == null || !Number.isFinite(+value)) ? '' : (+value).toFixed(3);
+    this._setSrcTag(source);
+  }
+
+  _setSrcTag(source) {
+    const seeded = source === 'loc';
+    this.ui.rocSrc.textContent = seeded ? 'seeded from LOC · edit if ROC observed' : '';
+    this.ui.rocSrc.classList.toggle('shown', seeded);
   }
 
   /** Bind chart hover so the stop point tracks the cursor time. */
