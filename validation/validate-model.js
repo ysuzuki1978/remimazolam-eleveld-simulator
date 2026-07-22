@@ -172,5 +172,38 @@ console.log('\n=== 5. Age effect: required Ce for BIS=50 decreases with age ==='
   check('required Ce strictly decreases with age', dec);
 }
 
+console.log('\n=== 6. Recovery prediction (predictRecovery, infusion stopped) ===');
+{
+  const p = ref();
+  // 40 min of deep maintenance, then predict recovery from the end state
+  const { points, params } = M.simulate(p, [new DoseEvent(0, 12, 60)], { duration: 40, dt: 0.1, sampleInterval: 0.5 });
+  const end = points[points.length - 1];
+  check('sample points carry the full 8-state vector', Array.isArray(end.state) && end.state.length === 8);
+
+  const r = M.predictRecovery(end.state, params, { ceSite: 'bis', ceDecFraction: 0.5, ceAbsTarget: 0.30 });
+  check('MOAA/S>=4 recovery time finite & positive', Number.isFinite(r.toMoaas) && r.toMoaas > 0, `(${r.toMoaas} min)`);
+  check('BIS>=70 recovery time finite & positive', Number.isFinite(r.toBis) && r.toBis > 0, `(${r.toBis} min)`);
+  check('Ce -50% decrement time positive', r.toCeDecrement > 0, `(${r.toCeDecrement} min)`);
+  check('Ce target (0.30 < current) is reached', r.toCeTarget > 0, `(${r.toCeTarget} min)`);
+
+  const rDeep = M.predictRecovery(end.state, params, { ceSite: 'bis', ceDecFraction: 0.8 });
+  check('deeper decrement (80%) takes longer than 50%', rDeep.toCeDecrement > r.toCeDecrement,
+        `(80%=${rDeep.toCeDecrement} > 50%=${r.toCeDecrement})`);
+
+  const rUp = M.predictRecovery(end.state, params, { ceSite: 'bis', ceAbsTarget: end.ceBis + 0.5 });
+  check('Ce target above current is unreachable by washout', rUp.ceUnreachable === true && rUp.toCeTarget === null);
+
+  // ROC wake threshold: Ce falls to a recorded return-of-consciousness Ce
+  const roc = 0.25;
+  const rRoc = M.predictRecovery(end.state, params, { ceSite: 'bis', ceWakeTarget: roc });
+  check('ROC below current Ce -> finite wake time', Number.isFinite(rRoc.toCeWake) && rRoc.toCeWake > 0, `(${rRoc.toCeWake} min to Ce=${roc})`);
+  const rRocHi = M.predictRecovery(end.state, params, { ceSite: 'bis', ceWakeTarget: end.ceBis + 0.2 });
+  check('ROC at/above current Ce -> already awake (0 min)', rRocHi.alreadyAwakeByCe === true && rRocHi.toCeWake === 0);
+
+  // drug-naive state: already awake at t=0 (times = 0)
+  const r0 = M.predictRecovery(M.createInitialState(), params, { ceSite: 'bis' });
+  check('drug-naive state is already awake (0 min)', r0.toMoaas === 0 && r0.toBis === 0);
+}
+
 console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===\n`);
 process.exit(fail === 0 ? 0 : 1);

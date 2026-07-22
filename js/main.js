@@ -15,6 +15,11 @@ const App = (() => {
   let locCe = null;
   const locCeListeners = [];
 
+  /** ROC (return-of-consciousness) effect-site Ce (µg/mL): a personalised
+   *  wake-up threshold recorded by the user, used by the recovery panel. */
+  let rocCe = null;
+  const rocCeListeners = [];
+
   /* -------- pub/sub -------- */
   function onPatientChange(fn) { patientListeners.push(fn); }
   function emitPatientChange() { patientListeners.forEach(fn => { try { fn(patient); } catch (e) { console.error(e); } }); }
@@ -23,6 +28,10 @@ const App = (() => {
   function onLocCeChange(fn) { locCeListeners.push(fn); }
   function setLocCe(ce) { locCe = ce; locCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
   function getLocCe() { return locCe; }
+
+  function onRocCeChange(fn) { rocCeListeners.push(fn); }
+  function setRocCe(ce) { rocCe = ce; rocCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
+  function getRocCe() { return rocCe; }
 
   /* -------- patient summary -------- */
   function renderPatientSummary() {
@@ -130,7 +139,8 @@ const App = (() => {
     emitPatientChange();
   }
 
-  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe };
+  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe,
+           onRocCeChange, setRocCe, getRocCe };
 })();
 
 /* ================================================================== */
@@ -139,6 +149,7 @@ const App = (() => {
 const MonitoringController = (() => {
   const engine = new MonitoringEngine();
   let chartConc = null, chartMoaas = null;
+  let recovery = null;
   let lastResult = null;
 
   function startTime() {
@@ -240,6 +251,13 @@ const MonitoringController = (() => {
     chartMoaas.render(pts, [
       { key: 'moaasWeighted', label: 'Prob.-weighted MOAA/S', color: CHART_COLORS.moaas, axis: 'left' }
     ]);
+
+    // emergence-forecast panel, driven by the concentration chart hover
+    if (window.RecoveryPanel && result.simPoints) {
+      if (!recovery) { recovery = new RecoveryPanel('monRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
+      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
+      recovery.bindChart(chartConc.chart);
+    }
   }
 
   function exportCsv() {
@@ -285,6 +303,7 @@ const InductionController = (() => {
     document.getElementById('indPauseBtn').disabled = !running;
     document.getElementById('indBolusBtn').disabled = !engine.state;
     document.getElementById('indRecordBtn').disabled = !engine.state;
+    document.getElementById('indRocBtn').disabled = !engine.state;
   }
 
   function onUpdate(s) {
@@ -335,6 +354,17 @@ const InductionController = (() => {
     App.setLocCe(s.ceBis);
   }
 
+  // Record the current effect-site (BIS site) Ce as the return-of-consciousness
+  // (ROC) threshold — a personalised wake-up Ce for the recovery panel.
+  function recordRoc() {
+    const s = engine.observe();
+    if (!s) return;
+    App.setRocCe(s.ceBis);
+    const note = document.getElementById('indRocNote');
+    note.classList.remove('hidden');
+    note.innerHTML = `ROC recorded: <b>${s.ceBis.toFixed(3)} µg/mL</b> (effect-site) at ${engine.elapsedMin.toFixed(1)} min — used as the wake-up threshold in the recovery panel.`;
+  }
+
   // default induction bolus = 0.1 mg/kg of the current patient
   function applyDefaultBolus() {
     const p = App.getPatient();
@@ -355,6 +385,8 @@ const InductionController = (() => {
     locSnapshots.length = 0;
     renderLoc();
     App.setLocCe(null);
+    App.setRocCe(null);
+    document.getElementById('indRocNote').classList.add('hidden');
     applyDefaultBolus();
     if (chart) chart.reset();
     document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
@@ -366,6 +398,7 @@ const InductionController = (() => {
     setRunningUI(false);
     document.getElementById('indBolusBtn').disabled = true;
     document.getElementById('indRecordBtn').disabled = true;
+    document.getElementById('indRocBtn').disabled = true;
   }
 
   function init() {
@@ -374,6 +407,7 @@ const InductionController = (() => {
     document.getElementById('indPauseBtn').addEventListener('click', pause);
     document.getElementById('indBolusBtn').addEventListener('click', giveBolus);
     document.getElementById('indRecordBtn').addEventListener('click', record);
+    document.getElementById('indRocBtn').addEventListener('click', recordRoc);
     document.getElementById('indResetBtn').addEventListener('click', reset);
     document.getElementById('indCont').addEventListener('change', (e) => engine.setContinuous(parseFloat(e.target.value) || 0));
     // reset induction when patient changes
@@ -391,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => InductionController.init());
 /* ================================================================== */
 const TciController = (() => {
   let chartConc = null, chartRate = null;
+  let recovery = null;
   let lastResult = null, lastMode = 'ce';
   const LOC_MARGIN = 0.15;   // target Ce = LOC Ce + 0.15 µg/mL
 
@@ -493,6 +528,13 @@ const TciController = (() => {
     if (!chartRate) chartRate = new MultiLineChart('tciChartRate', { left: { title: 'Infusion rate (mg/hr)', min: 0 } });
     chartRate.render(pts, [{ key: 'infusionMgHr', label: 'Infusion rate', color: CHART_COLORS.ceMoaas, axis: 'left' }]);
 
+    // emergence-forecast panel, driven by the concentration chart hover
+    if (window.RecoveryPanel && result.params) {
+      if (!recovery) { recovery = new RecoveryPanel('tciRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
+      recovery.setData({ points: pts, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
+      recovery.bindChart(chartConc.chart);
+    }
+
     // loading-bolus note
     document.getElementById('tciBolusNote').innerHTML =
       `At t=0, give a <b>loading bolus of ${result.loadingBolusMg.toFixed(1)} mg</b> (0.1 mg/kg); thereafter the infusion rate maintains plasma at the target.`;
@@ -562,6 +604,61 @@ document.addEventListener('DOMContentLoaded', () => {
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
   });
+});
+
+/* ================================================================== */
+/* Model / metric info popups (S? — model-info-popup)                  */
+/* ================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.InfoPopup) return;
+
+  const MODEL_INFO = `
+    <h4>Eleveld 2025 remimazolam PK-PD</h4>
+    <p class="ip-cite">Eleveld DJ, Colin PJ, van den Berg JP, Koomen JV, Stoehr T, Struys MMRF.
+      Development and analysis of a remimazolam pharmacokinetics and pharmacodynamics model with
+      proposed dosing and concentrations for anaesthesia and sedation. <i>Br J Anaesth</i> 2025;135(1):206-217.</p>
+    <p class="ip-links">
+      <a href="https://doi.org/10.1016/j.bja.2025.02.038" target="_blank" rel="noopener">doi:10.1016/j.bja.2025.02.038</a>
+      · <a href="https://pubmed.ncbi.nlm.nih.gov/40312166/" target="_blank" rel="noopener">PMID 40312166</a>
+      · CC BY 4.0</p>
+    <h5>Structure</h5>
+    <ul>
+      <li>Remimazolam: 3-compartment PK + two effect sites (BIS ke0 0.145, MOAA/S ke0 0.298 min⁻¹).</li>
+      <li>Active metabolite <b>CNS7054</b> (depot → 2-compartment); its plasma concentration
+        <b>competitively antagonises</b> the BIS / MOAA/S effect, so the Ce needed to hold a given
+        depth rises as it accumulates (<b>tolerance</b>).</li>
+    </ul>
+    <h5>Reference individual (70 kg, 35 yr, male, no opioid)</h5>
+    <ul class="ip-params">
+      <li>V1 4.31 L · CL 1.12 L/min</li>
+      <li>ke0 BIS 0.145 · MOAA/S 0.298 min⁻¹</li>
+      <li>Ce50 (BIS) 0.982 µg/mL · BIS baseline 93.7</li>
+    </ul>
+    <h5>Covariates</h5>
+    <p>Age, weight, sex, opioid co-administration, hepatic (Pugh-Child &gt; 8), renal (ESRD).</p>
+    <p class="ip-warn">Population means; inter-individual variability is large. Predictions below
+      BIS 50 are biased (benzodiazepine ceiling) — treat deep values as indicative only.</p>`;
+
+  const BIS_INFO = `
+    <h4>Predicted BIS</h4>
+    <p>Bispectral index, 0–100 (awake ≈ 93.7 baseline; surgical anaesthesia ≈ 40–60).
+      Driven by the BIS effect-site Ce, antagonised by the metabolite.</p>
+    <p class="ip-warn">The authors report population predictions are biased <b>below BIS 50</b>
+      (benzodiazepine ceiling effect). Treat deep-range values as indicative only.</p>`;
+
+  const MOAAS_INFO = `
+    <h4>MOAA/S (probability-weighted)</h4>
+    <p>Modified Observer's Assessment of Alertness/Sedation, 0–5, shown as the
+      probability-weighted mean of the proportional-odds model.</p>
+    <ul>
+      <li>5 = responds readily to name (awake)</li>
+      <li>3–4 = light / procedural sedation</li>
+      <li>≤ 1 = loss of consciousness · 0 = anaesthesia</li>
+    </ul>`;
+
+  InfoPopup.attach(document.getElementById('modelInfoIco'), MODEL_INFO);
+  InfoPopup.attach(document.getElementById('bisInfoIco'), BIS_INFO);
+  InfoPopup.attach(document.getElementById('moaasInfoIco'), MOAAS_INFO);
 });
 
 /* -------- service worker + update detection -------- */

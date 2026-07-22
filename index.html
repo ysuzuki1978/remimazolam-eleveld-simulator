@@ -19,7 +19,7 @@
 <body>
   <header class="app-header">
     <h1>Remimazolam TCI Simulator</h1>
-    <div class="sub">Eleveld 2025 PK-PD model · Ce / BIS / MOAA/S</div>
+    <div class="sub">Eleveld 2025 PK-PD model <span class="info-ico" id="modelInfoIco" aria-label="About the model">ⓘ</span> · Ce / BIS / MOAA/S</div>
     <div class="patient-summary">
       <div class="info" id="patientInfo">No patient set</div>
       <button class="btn btn-ghost" id="editPatientBtn" style="padding:6px 12px;font-size:0.78rem;">Edit patient</button>
@@ -64,8 +64,10 @@
           <button class="btn btn-ghost" id="indPauseBtn" disabled>Pause</button>
           <button class="btn btn-ghost" id="indBolusBtn" disabled>Bolus</button>
           <button class="btn btn-primary" id="indRecordBtn" disabled>Record LOC</button>
+          <button class="btn btn-primary" id="indRocBtn" disabled title="Record the current effect-site Ce as the return-of-consciousness (wake-up) threshold">Record ROC</button>
           <button class="btn btn-danger" id="indResetBtn">Reset</button>
         </div>
+        <p class="notice info hidden" id="indRocNote"></p>
       </div>
 
       <div class="card">
@@ -74,8 +76,8 @@
           <div class="metric cp"><div class="val" id="indCp">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Cp (parent)</div></div>
           <div class="metric ce"><div class="val" id="indCe">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Ce (BIS)</div></div>
           <div class="metric moaas"><div class="val" id="indCeMoaas">0.00<span class="unit"> µg/mL</span></div><div class="lbl">Ce (MOAA/S)</div></div>
-          <div class="metric bis"><div class="val" id="indBis">93.7</div><div class="lbl">Predicted BIS</div></div>
-          <div class="metric moaas"><div class="val" id="indMoaas">5.0<span class="unit"> /5</span></div><div class="lbl">MOAA/S</div></div>
+          <div class="metric bis"><div class="val" id="indBis">93.7</div><div class="lbl">Predicted BIS <span class="info-ico" id="bisInfoIco" aria-label="About predicted BIS">ⓘ</span></div></div>
+          <div class="metric moaas"><div class="val" id="indMoaas">5.0<span class="unit"> /5</span></div><div class="lbl">MOAA/S <span class="info-ico" id="moaasInfoIco" aria-label="About MOAA/S">ⓘ</span></div></div>
         </div>
         <div class="chart-wrap"><canvas id="indChart"></canvas></div>
       </div>
@@ -182,6 +184,8 @@
         </div>
         <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="tciChartConc"></canvas></div>
+        <p class="chart-hint">Wheel / pinch: zoom time · drag: pan · double-click: reset · hover: recovery from that time</p>
+        <div id="tciRecovery" class="recovery-host"></div>
         <h3>Infusion rate</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="tciChartRate"></canvas></div>
         <h3>Dosing schedule</h3>
@@ -228,6 +232,8 @@
         </div>
         <h3>Concentrations &amp; predicted BIS</h3>
         <div class="chart-wrap"><canvas id="monChartConc"></canvas></div>
+        <p class="chart-hint">Wheel / pinch: zoom time · drag: pan · double-click: reset · hover: recovery from that time</p>
+        <div id="monRecovery" class="recovery-host"></div>
         <h3>Probability-weighted MOAA/S (sedation score)</h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="monChartMoaas"></canvas></div>
       </div>
@@ -242,7 +248,7 @@
     <div>
       Research/education simulator. Not for clinical decisions or actual drug administration.
     </div>
-    <div>Software: Apache-2.0 · v1.7.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Software: Apache-2.0 · v1.11.0 · <a href="https://github.com/ysuzuki1978/remimazolam-eleveld-simulator" target="_blank" rel="noopener">GitHub</a></div>
   </footer>
 
   <!-- ===== Patient editor modal ===== -->
@@ -338,9 +344,14 @@
 
   <!-- ===== Scripts ===== -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Vendored locally (no extra CDN dependency) for chart zoom/pan -->
+  <script src="js/vendor/hammer.min.js"></script>
+  <script src="js/vendor/chartjs-plugin-zoom.min.js"></script>
   <script src="js/models.js"></script>
   <script src="js/remimazolam-eleveld-pkpd.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/info-popup.js"></script>
+  <script src="js/recovery-panel.js"></script>
   <script src="js/induction-engine.js"></script>
   <script src="js/tci-engine.js"></script>
   <script src="js/monitoring-engine.js"></script>
