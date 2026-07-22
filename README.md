@@ -12,7 +12,45 @@ Built with HTML / JavaScript / PWA — no build step, works offline.
 
 > ⚠️ **This is a research/education simulator. Do not use it for clinical decisions or actual drug administration.**
 
-![Screenshot of the BIS-target dosing plan](images/screenshot-tci.png)
+![TCI dosing plan with the emergence forecast panel](images/screenshot-tci.png)
+
+---
+
+## Usage
+
+Three tabs across the top. A default reference patient (35 yr, 70 kg, male, no opioid) is preset; press
+**Edit patient** to change age, weight, sex, opioid co-administration, hepatic (Pugh-Child > 8) / renal (ESRD)
+function, and the anaesthesia start time. Each model / metric carries an **ⓘ** popover with the citation and
+reading caveats.
+
+### 1. Induction (real-time)
+
+![Induction tab: bolus / infusion controls, LOC & ROC recording, live Ce / BIS / MOAA/S](images/screenshot-induction.png)
+
+Set the initial **bolus** and **continuous infusion**, then press **Start** — the run advances in real clinical
+time with live Ce, predicted BIS and MOAA/S. **Record LOC** at loss of consciousness (its effect-site Ce + 0.15
+can be sent to the TCI tab as the target Ce); **Record ROC** at return of consciousness (used as the personalised
+wake-up threshold in the emergence forecast).
+
+### 2. TCI / Dosing plan
+
+Choose a target — **effect-site Ce** (BIS- or MOAA/S-site), **target BIS**, or **target MOAA/S**; the last two
+hold the *effect* constant, raising the infusion as the metabolite CNS7054 accumulates (tolerance). **Generate
+plan** draws the concentration / BIS curves and the loading-bolus + infusion schedule (screenshot at the top of
+this page).
+
+The **Emergence forecast** panel answers *"if the infusion stops now, when does the patient emerge?"* — time to
+**MOAA/S ≥ 4** and time for the effect-site Ce to fall to your **wake-up Ce (ROC)** (seeded from the recorded LOC
+until you record an actual ROC). **Hover the chart** to move the stop point to that time. Charts support
+wheel / pinch zoom, drag pan, and double-click reset.
+
+### 3. Monitoring (dose events → time course)
+
+![Monitoring tab: washout curves and probability-weighted MOAA/S](images/screenshot-monitoring.png)
+
+Enter dose events by **clock time**; the simulation runs until **120 min after the last event**. Concentration /
+BIS and the probability-weighted MOAA/S sedation score are plotted, the emergence forecast is available on the
+chart, and the full time course can be exported to CSV.
 
 ---
 
