@@ -38,8 +38,10 @@ Three modes:
 
 **Emergence forecast** (TCI & Monitoring result charts): a panel answers *"if the infusion stops now, when does
 the patient emerge?"* — time to **MOAA/S ≥ 4** (responds to name; a model-based endpoint) and time for the
-effect-site Ce to fall to the **recorded ROC Ce** (a personalised wake-up threshold — record it on the Induction
-tab or type it). A secondary PK readout gives the effect-site Ce **decrement** time (−50 / 75 / 90 %; −50 % ≈
+effect-site Ce to fall to the **wake-up Ce (ROC)** — a personalised wake-up threshold. Because a true ROC is
+only known after the patient wakes, the field is **seeded from the recorded LOC Ce** until you record an actual
+ROC (or type one); the effect-site Ce at LOC and ROC are comparable, so LOC is a usable early proxy. A secondary
+PK readout gives the effect-site Ce **decrement** time (−50 / 75 / 90 %; −50 % ≈
 context-sensitive half-time). Predicted **BIS is deliberately not used as a wake-up endpoint**: for a
 benzodiazepine the model's BIS does not reliably reach ~70 at emergence (ceiling), so a recorded ROC
 concentration is the better personalised target. Hovering the chart moves the stop point to that time
@@ -119,6 +121,7 @@ across these releases — the work is UI/UX and prediction tooling on top of the
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| **1.12.0** | 2026-07-22 | The wake-up Ce (ROC) field is **seeded from the recorded LOC Ce** when no ROC has been recorded (labelled "seeded from LOC", editable), so an emergence estimate is available from induction — before an actual ROC can be observed. |
 | **1.11.0** | 2026-07-22 | **Emergence forecast** redesign: awakening-first (MOAA/S ≥ 4 + Ce → recorded **ROC** wake-up threshold); **BIS ≥ 70 dropped** as a wake endpoint (benzodiazepine ceiling); effect-site Ce decrement demoted to a secondary PK readout with preset chips (−50 / 75 / 90 %). New "Record ROC" button in induction. Core: `predictRecovery` gains `ceWakeTarget`. |
 | **1.10.0** | 2026-07-21 | **ⓘ info popovers** on the model header and the BIS / MOAA/S metrics — Eleveld 2025 citation (doi:10.1016/j.bja.2025.02.038, PMID 40312166, CC BY 4.0), model structure, metabolite/tolerance, reference parameters, and the below-BIS-50 ceiling caveat. |
 | **1.9.0** | 2026-07-21 | First **recovery/emergence prediction** panel on the TCI & Monitoring charts, driven by chart hover, with the metabolite carried through the washout (tolerance). Full 8-state vector stored per sample so any time can seed the prediction. |

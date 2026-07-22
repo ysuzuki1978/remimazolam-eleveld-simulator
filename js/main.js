@@ -254,8 +254,12 @@ const MonitoringController = (() => {
 
     // emergence-forecast panel, driven by the concentration chart hover
     if (window.RecoveryPanel && result.simPoints) {
-      if (!recovery) { recovery = new RecoveryPanel('monRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
-      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
+      if (!recovery) {
+        recovery = new RecoveryPanel('monRecovery');
+        App.onRocCeChange((ce) => recovery.setRoc(ce));
+        App.onLocCeChange((ce) => recovery.setLoc(ce));
+      }
+      recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis', rocCe: App.getRocCe(), locCe: App.getLocCe() });
       recovery.bindChart(chartConc.chart);
     }
   }
@@ -530,8 +534,12 @@ const TciController = (() => {
 
     // emergence-forecast panel, driven by the concentration chart hover
     if (window.RecoveryPanel && result.params) {
-      if (!recovery) { recovery = new RecoveryPanel('tciRecovery'); App.onRocCeChange((ce) => recovery.setRoc(ce)); }
-      recovery.setData({ points: pts, params: result.params, ceSite: 'bis', rocCe: App.getRocCe() });
+      if (!recovery) {
+        recovery = new RecoveryPanel('tciRecovery');
+        App.onRocCeChange((ce) => recovery.setRoc(ce));
+        App.onLocCeChange((ce) => recovery.setLoc(ce));
+      }
+      recovery.setData({ points: pts, params: result.params, ceSite: 'bis', rocCe: App.getRocCe(), locCe: App.getLocCe() });
       recovery.bindChart(chartConc.chart);
     }
 
