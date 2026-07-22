@@ -21,9 +21,10 @@ Built with HTML / JavaScript / PWA — no build step, works offline.
 Three modes:
 
 1. **Induction (real-time)** — an initial bolus (default 0.1 mg/kg) plus a continuous infusion
-   advance in real time, with live plots of Ce / predicted BIS / MOAA/S. Supports extra boluses
-   and LOC snapshot recording. When you record LOC, **that effect-site Ce + 0.15 µg/mL** can be
-   sent to the TCI tab as the target Ce.
+   advance in real time, with live plots of Ce / predicted BIS / MOAA/S. Supports extra boluses,
+   **LOC** snapshot recording (when you record LOC, **that effect-site Ce + 0.15 µg/mL** can be sent
+   to the TCI tab as the target Ce) and **ROC** recording (the effect-site Ce at return of
+   consciousness, used as a personalised wake-up threshold in the emergence forecast).
 2. **TCI / Dosing plan**
    - **Effect-site Ce target**: choose which effect-site to drive — **MOAA/S-site (ke0 0.298)** or
     **BIS-site (ke0 0.145)** — and derive the loading bolus and maintenance infusion schedule for that target Ce.
@@ -35,12 +36,17 @@ Three modes:
    the patient). The simulation runs until **120 min after the last event**, and the full time course is
    plotted and exported to CSV.
 
-**Recovery prediction** (TCI & Monitoring result charts): a panel answers *"if the infusion stops now, when does
-the patient recover?"* — time to **MOAA/S ≥ 4** and **BIS ≥ 70** (awakening), time for the effect-site Ce to fall
-by a chosen **% (50 % ≈ context-sensitive half-time)**, and time to reach an **absolute target Ce** you type.
-Hovering the chart moves the stop point to that time (*"from MM:SS"*), so induction / maintenance / pre-wake
-scenarios can be compared. The accumulated metabolite (CNS7054) is carried through the washout, so tolerance is
-reflected. Charts also support **wheel / pinch zoom and drag pan** (double-click resets).
+**Emergence forecast** (TCI & Monitoring result charts): a panel answers *"if the infusion stops now, when does
+the patient emerge?"* — time to **MOAA/S ≥ 4** (responds to name; a model-based endpoint) and time for the
+effect-site Ce to fall to the **recorded ROC Ce** (a personalised wake-up threshold — record it on the Induction
+tab or type it). A secondary PK readout gives the effect-site Ce **decrement** time (−50 / 75 / 90 %; −50 % ≈
+context-sensitive half-time). Predicted **BIS is deliberately not used as a wake-up endpoint**: for a
+benzodiazepine the model's BIS does not reliably reach ~70 at emergence (ceiling), so a recorded ROC
+concentration is the better personalised target. Hovering the chart moves the stop point to that time
+(*"from MM:SS"*), so induction / maintenance / pre-wake scenarios can be compared. The accumulated metabolite
+(CNS7054) is carried through the washout, so tolerance is reflected. Charts also support **wheel / pinch zoom
+and drag pan** (double-click resets), and each model / metric carries an **ⓘ** popover with the citation
+(DOI / PMID), key parameters, and reading caveats.
 
 Covariates: age, weight, sex, opioid co-administration, hepatic function (Pugh-Child > 8), renal function (ESRD).
 
@@ -78,8 +84,8 @@ python3 -m http.server 8000   # = npm run serve
 ## Model validation
 
 ```bash
-npm run validate          # = model + TCI test suites (83 checks)
-node validation/validate-model.js   # PK-PD core + recovery prediction (55 checks)
+npm run validate          # = model + TCI test suites (85 checks)
+node validation/validate-model.js   # PK-PD core + recovery/emergence prediction (57 checks)
 node validation/validate-tci.js     # TCI: effect-site Ce / BIS / MOAA/S targets (28 checks)
 ```
 
@@ -104,6 +110,20 @@ What is checked (selected):
 
 Vanilla JS (globals), no build step. `js/remimazolam-eleveld-pkpd.js` is the model core; each mode
 (induction / tci / monitoring) is an engine + Chart.js + a PWA service worker.
+
+## Version history
+
+The service-worker cache key (`sw.js`), `package.json`, and the in-app footer are kept in lock-step; the
+footer of the running app always shows the deployed version. Model equations and parameters are unchanged
+across these releases — the work is UI/UX and prediction tooling on top of the same Eleveld 2025 core.
+
+| Version | Date | Highlights |
+| --- | --- | --- |
+| **1.11.0** | 2026-07-22 | **Emergence forecast** redesign: awakening-first (MOAA/S ≥ 4 + Ce → recorded **ROC** wake-up threshold); **BIS ≥ 70 dropped** as a wake endpoint (benzodiazepine ceiling); effect-site Ce decrement demoted to a secondary PK readout with preset chips (−50 / 75 / 90 %). New "Record ROC" button in induction. Core: `predictRecovery` gains `ceWakeTarget`. |
+| **1.10.0** | 2026-07-21 | **ⓘ info popovers** on the model header and the BIS / MOAA/S metrics — Eleveld 2025 citation (doi:10.1016/j.bja.2025.02.038, PMID 40312166, CC BY 4.0), model structure, metabolite/tolerance, reference parameters, and the below-BIS-50 ceiling caveat. |
+| **1.9.0** | 2026-07-21 | First **recovery/emergence prediction** panel on the TCI & Monitoring charts, driven by chart hover, with the metabolite carried through the washout (tolerance). Full 8-state vector stored per sample so any time can seed the prediction. |
+| **1.8.0** | 2026-07-20 | Chart **wheel / pinch zoom + drag pan** (double-click reset) on the result charts, via a locally-vendored `chartjs-plugin-zoom` (no new CDN dependency). |
+| **1.7.0** and earlier | — | Induction / TCI / Monitoring modes; effect-site Ce target (BIS / MOAA/S site); maintain-a-target-effect (BIS / MOAA/S) dosing with tolerance escalation; clock-time monitoring; PWA + validation suite. |
 
 ## Citation & license
 
