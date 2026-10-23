@@ -13,6 +13,7 @@ const App = (() => {
 
   /** LOC effect-site Ce recorded in induction (µg/mL), shared with the TCI tab. */
   let locCe = null;
+  let locCeMoaas = null;
   const locCeListeners = [];
 
   /** ROC (return-of-consciousness) effect-site Ce (µg/mL): a personalised
@@ -26,12 +27,46 @@ const App = (() => {
   function getPatient() { return patient; }
 
   function onLocCeChange(fn) { locCeListeners.push(fn); }
-  function setLocCe(ce) { locCe = ce; locCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
+  /** `ce` is the BIS-site Ce (what the recovery panel reads); `ceMoaas` is the MOAA/S-site Ce at the same moment. */
+  function setLocCe(ce, ceMoaas = null) { locCe = ce; locCeMoaas = ceMoaas; locCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
   function getLocCe() { return locCe; }
+  function getLocCeMoaas() { return locCeMoaas; }
 
   function onRocCeChange(fn) { rocCeListeners.push(fn); }
   function setRocCe(ce) { rocCe = ce; rocCeListeners.forEach(fn => { try { fn(ce); } catch (e) { console.error(e); } }); }
   function getRocCe() { return rocCe; }
+
+  /* -------- readout strip (the numbers pinned above every tab) -------- */
+  const SOURCE_LABEL = { induction: 'Induction', tci: 'TCI plan', monitoring: 'Monitoring' };
+  const PANEL_SOURCE = { 'panel-induction': 'induction', 'panel-tci': 'tci', 'panel-monitoring': 'monitoring' };
+  const readouts = {
+    induction: { timeMin: 0, ce: 0, ceMoaas: 0, bis: 93.7, moaas: 5.0, note: 'not started' },
+    tci: null,
+    monitoring: null
+  };
+  let activeSource = 'induction';
+
+  /** @param {'induction'|'tci'|'monitoring'} source  @param {{timeMin,ce,bis,moaas,note}|null} r */
+  function setReadout(source, r) {
+    readouts[source] = r;
+    if (source === activeSource) drawReadout();
+  }
+  function drawReadout() {
+    const r = readouts[activeSource];
+    const set = (id, v) => { document.getElementById(id).textContent = v; };
+    const f = (x, d) => (x == null || !Number.isFinite(x)) ? '—' : x.toFixed(d);
+    set('rdSrc', `${SOURCE_LABEL[activeSource]} · ${r ? r.note : 'no run yet'}`);
+    set('rdTime', r ? f(r.timeMin, 1) : '—');
+    set('rdCe', r ? f(r.ce, 2) : '—');
+    set('rdCeMoaas', r ? f(r.ceMoaas, 2) : '—');
+    set('rdBis', r ? f(r.bis, 1) : '—');
+    set('rdMoaas', r ? f(r.moaas, 1) : '—');
+  }
+
+  /** The strip's reading for one result point, whichever engine produced it. */
+  function pointReadout(p, note) {
+    return { timeMin: p.timeMin, ce: p.ceBis, ceMoaas: p.ceMoaas, bis: p.bis, moaas: p.moaasWeighted, note };
+  }
 
   /* -------- patient summary -------- */
   function renderPatientSummary() {
@@ -105,6 +140,10 @@ const App = (() => {
         tab.classList.add('active');
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(tab.dataset.panel).classList.add('active');
+        activeSource = PANEL_SOURCE[tab.dataset.panel] || 'induction';
+        drawReadout();
+        // a tab is a different screen, not a place further down this one
+        window.scrollTo(0, 0);
       });
     });
   }
@@ -130,6 +169,12 @@ const App = (() => {
     document.getElementById('editPatientBtn').addEventListener('click', openPatientModal);
     document.getElementById('patientCancelBtn').addEventListener('click', closePatientModal);
     document.getElementById('patientSaveBtn').addEventListener('click', savePatientFromModal);
+    // the anaesthesia start field, set to the wall clock
+    document.getElementById('pAnesStartNow').addEventListener('click', () => {
+      const now = new Date();
+      document.getElementById('pAnesStart').value =
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    });
     document.getElementById('patientModal').addEventListener('click', (e) => {
       if (e.target.id === 'patientModal') closePatientModal();
     });
@@ -139,8 +184,8 @@ const App = (() => {
     emitPatientChange();
   }
 
-  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe,
-           onRocCeChange, setRocCe, getRocCe };
+  return { init, getPatient, onPatientChange, onLocCeChange, setLocCe, getLocCe, getLocCeMoaas,
+           onRocCeChange, setRocCe, getRocCe, setReadout, pointReadout };
 })();
 
 /* ================================================================== */
@@ -172,13 +217,13 @@ const MonitoringController = (() => {
     const body = document.getElementById('monEventsBody');
     const empty = document.getElementById('monEventsEmpty');
     body.innerHTML = '';
-    if (!engine.doseEvents.length) { empty.style.display = ''; return; }
-    empty.style.display = 'none';
+    if (!engine.doseEvents.length) { empty.hidden = false; return; }
+    empty.hidden = true;
     engine.doseEvents.forEach((ev, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${ev.clock}</td>` +
         `<td>+${ev.timeMin.toFixed(0)}</td><td>${ev.bolusMg || 0}</td><td>${ev.continuousMgHr || 0}</td>` +
-        `<td><button class="btn btn-ghost" data-i="${i}" style="padding:2px 10px;font-size:0.75rem;">Remove</button></td>`;
+        `<td><button class="btn btn-ghost btn-sm" data-i="${i}">Remove</button></td>`;
       tr.querySelector('button').addEventListener('click', () => { engine.removeDoseEvent(i); renderEventsTable(); });
       body.appendChild(tr);
     });
@@ -218,7 +263,7 @@ const MonitoringController = (() => {
   }
 
   function renderResult(result) {
-    document.getElementById('monResultsCard').style.display = '';
+    document.getElementById('monResultsCard').hidden = false;
     const pts = result.timePoints;
 
     // metrics
@@ -227,6 +272,7 @@ const MonitoringController = (() => {
       { lbl: 'Max Cp (parent)', val: result.maxCpRemi.toFixed(3), unit: 'µg/mL', cls: 'cp' },
       { lbl: 'Min BIS', val: result.minBis != null ? result.minBis.toFixed(1) : '—', unit: '', cls: 'bis' },
       { lbl: 'Max Ce (BIS)', val: result.maxCeBis.toFixed(3), unit: 'µg/mL', cls: 'ce' },
+      { lbl: 'Max Ce (MOAA/S)', val: result.maxCeMoaas.toFixed(3), unit: 'µg/mL', cls: 'moaas' },
       { lbl: 'Max metabolite', val: result.maxCpMet.toFixed(3), unit: 'µg/mL', cls: 'met' },
       { lbl: 'Final MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '(0-5)', cls: 'moaas' }
     ];
@@ -234,10 +280,11 @@ const MonitoringController = (() => {
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
     ).join('');
 
-    document.getElementById('monDeepBisNotice').style.display = (result.minBis != null && result.minBis < 50) ? '' : 'none';
+    document.getElementById('monDeepBisNotice').hidden = !(result.minBis != null && result.minBis < 50);
 
     // concentration + BIS chart
-    if (!chartConc) chartConc = new MultiLineChart('monChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
+    if (!chartConc) chartConc = new MultiLineChart('monChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } },
+      { onCursor: onCursor });
     chartConc.render(pts, [
       { key: 'cpRemi', label: 'Cp (parent)', color: CHART_COLORS.cpRemi, axis: 'left' },
       { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
@@ -262,6 +309,18 @@ const MonitoringController = (() => {
       recovery.setData({ points: result.simPoints, params: result.params, ceSite: 'bis', rocCe: App.getRocCe(), locCe: App.getLocCe() });
       recovery.bindChart(chartConc.chart);
     }
+    onCursor(null);
+  }
+
+  // The reader pointed at the chart (or cleared the cursor): the strip and the
+  // emergence forecast both follow that minute, and go back to the end of the run.
+  function onCursor(t) {
+    if (!lastResult) return;
+    const pts = lastResult.timePoints;
+    App.setReadout('monitoring', t == null
+      ? App.pointReadout(pts[pts.length - 1], 'end of run')
+      : App.pointReadout(nearestByTime(pts, t), 'at cursor'));
+    if (recovery) recovery.setStopTime(t);
   }
 
   function exportCsv() {
@@ -277,6 +336,12 @@ const MonitoringController = (() => {
 
   function init() {
     document.getElementById('monAddEventBtn').addEventListener('click', openEventModal);
+    // the dose time, set to the wall clock
+    document.getElementById('evTimeNow').addEventListener('click', () => {
+      const now = new Date();
+      document.getElementById('evTime').value =
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    });
     document.getElementById('evCancelBtn').addEventListener('click', closeEventModal);
     document.getElementById('evSaveBtn').addEventListener('click', saveEvent);
     document.getElementById('doseEventModal').addEventListener('click', (e) => { if (e.target.id === 'doseEventModal') closeEventModal(); });
@@ -287,7 +352,20 @@ const MonitoringController = (() => {
     renderEventsTable();
   }
 
-  return { init };
+  /**
+   * Replaces the dose events with a list built elsewhere (the TCI plan) and runs
+   * it. Existing events are only overwritten once the reader has agreed.
+   */
+  function loadEvents(events) {
+    if (engine.doseEvents.length && !confirm('Replace the dose events in Monitoring with this plan?')) return false;
+    engine.clearDoseEvents();
+    events.forEach(ev => engine.addDoseEvent(ev));
+    renderEventsTable();
+    run();
+    return true;
+  }
+
+  return { init, loadEvents };
 })();
 
 document.addEventListener('DOMContentLoaded', () => MonitoringController.init());
@@ -311,12 +389,9 @@ const InductionController = (() => {
   }
 
   function onUpdate(s) {
-    document.getElementById('indElapsed').innerHTML = `${s.elapsedMin.toFixed(1)}<span class="unit"> min</span>`;
     document.getElementById('indCp').innerHTML = `${fmt(s.cp)}<span class="unit"> µg/mL</span>`;
-    document.getElementById('indCe').innerHTML = `${fmt(s.ceBis)}<span class="unit"> µg/mL</span>`;
-    document.getElementById('indCeMoaas').innerHTML = `${fmt(s.ceMoaas)}<span class="unit"> µg/mL</span>`;
-    document.getElementById('indBis').textContent = fmt(s.bis, 1);
-    document.getElementById('indMoaas').innerHTML = `${fmt(s.moaasWeighted, 1)}<span class="unit"> /5</span>`;
+    App.setReadout('induction', { timeMin: s.elapsedMin, ce: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis, moaas: s.moaasWeighted,
+      note: s.running ? 'live' : 'paused' });
     if (chart) chart.addPoint(s.elapsedMin, { cp: s.cp, ceBis: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis });
     if (!s.running && engine.timer === null) setRunningUI(false);
   }
@@ -352,10 +427,10 @@ const InductionController = (() => {
   function record() {
     const s = engine.observe();
     if (!s) return;
-    locSnapshots.push({ t: engine.elapsedMin, cp: s.cp, ce: s.ceBis, bis: s.bis, moaas: s.moaasWeighted });
+    locSnapshots.push({ t: engine.elapsedMin, cp: s.cp, ce: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis, moaas: s.moaasWeighted });
     renderLoc();
     // share the latest LOC effect-site Ce with the TCI tab
-    App.setLocCe(s.ceBis);
+    App.setLocCe(s.ceBis, s.ceMoaas);
   }
 
   // Record the current effect-site (BIS site) Ce as the return-of-consciousness
@@ -376,9 +451,9 @@ const InductionController = (() => {
   }
 
   function renderLoc() {
-    document.getElementById('indLocCard').style.display = locSnapshots.length ? '' : 'none';
+    document.getElementById('indLocCard').hidden = !locSnapshots.length;
     document.getElementById('indLocBody').innerHTML = locSnapshots.map(s =>
-      `<tr><td>${s.t.toFixed(1)}</td><td>${s.cp.toFixed(3)}</td><td>${s.ce.toFixed(3)}</td><td>${s.bis.toFixed(1)}</td><td>${s.moaas.toFixed(2)}</td></tr>`
+      `<tr><td>${s.t.toFixed(1)}</td><td>${s.cp.toFixed(3)}</td><td>${s.ce.toFixed(3)}</td><td>${s.ceMoaas.toFixed(3)}</td><td>${s.bis.toFixed(1)}</td><td>${s.moaas.toFixed(2)}</td></tr>`
     ).join('');
   }
 
@@ -393,12 +468,8 @@ const InductionController = (() => {
     document.getElementById('indRocNote').classList.add('hidden');
     applyDefaultBolus();
     if (chart) chart.reset();
-    document.getElementById('indElapsed').innerHTML = '0.0<span class="unit"> min</span>';
     document.getElementById('indCp').innerHTML = '0.00<span class="unit"> µg/mL</span>';
-    document.getElementById('indCe').innerHTML = '0.00<span class="unit"> µg/mL</span>';
-    document.getElementById('indCeMoaas').innerHTML = '0.00<span class="unit"> µg/mL</span>';
-    document.getElementById('indBis').textContent = '93.7';
-    document.getElementById('indMoaas').innerHTML = '5.0<span class="unit"> /5</span>';
+    App.setReadout('induction', { timeMin: 0, ce: 0, ceMoaas: 0, bis: 93.7, moaas: 5.0, note: 'not started' });
     setRunningUI(false);
     document.getElementById('indBolusBtn').disabled = true;
     document.getElementById('indRecordBtn').disabled = true;
@@ -431,7 +502,12 @@ const TciController = (() => {
   let chartConc = null, chartRate = null;
   let recovery = null;
   let lastResult = null, lastMode = 'ce';
-  const LOC_MARGIN = 0.15;   // target Ce = LOC Ce + 0.15 µg/mL
+  // The planning target is built on the MOAA/S-site Ce. The reader adds a margin
+  // to the Ce recorded at LOC; it starts at 0 (the plan holds the LOC concentration).
+  // The 0.15 µg/mL this replaced was written against the BIS-site Ce, whose Ce50 is
+  // 0.98; against the MOAA/S site (Ce50 0.18) it is most of a Ce50, so it is not carried over.
+  const locMargin = () => Math.max(0, parseFloat(document.getElementById('tciLocMargin').value) || 0);
+  const SCHEDULE_TIMES = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60];
 
   function currentMode() {
     const el = document.querySelector('input[name="tciMode"]:checked');
@@ -441,30 +517,28 @@ const TciController = (() => {
   // LOC -> dosing-plan transfer banner
   function updateLocBanner() {
     const banner = document.getElementById('tciLocBanner');
-    const loc = App.getLocCe();
+    const loc = App.getLocCeMoaas();
     if (loc == null) { banner.classList.add('hidden'); return; }
-    const tgt = loc + LOC_MARGIN;
+    const tgt = loc + locMargin();
     document.getElementById('tciLocText').innerHTML =
-      `LOC effect-site Ce recorded in induction = <b>${loc.toFixed(3)}</b> µg/mL → target <b>${tgt.toFixed(2)}</b> µg/mL (LOC + ${LOC_MARGIN})`;
+      `Ce (MOAA/S) at LOC = <b>${loc.toFixed(3)}</b> µg/mL → target <b>${tgt.toFixed(3)}</b> µg/mL`;
     banner.classList.remove('hidden');
   }
   function applyLoc() {
-    const loc = App.getLocCe();
+    const loc = App.getLocCeMoaas();
     if (loc == null) return;
     document.querySelector('input[name="tciMode"][value="ce"]').checked = true;
-    // the recorded LOC Ce is the BIS effect-site value, so target the BIS site
-    const bisRadio = document.querySelector('input[name="tciSite"][value="bis"]');
-    if (bisRadio) bisRadio.checked = true;
+    document.querySelector('input[name="tciSite"][value="moaas"]').checked = true;
     syncModeUI();
-    document.getElementById('tciCe').value = (loc + LOC_MARGIN).toFixed(2);
+    document.getElementById('tciCe').value = (loc + locMargin()).toFixed(3);
     plan();
   }
 
   function syncModeUI() {
     const mode = currentMode();
-    document.getElementById('tciCeControls').style.display = mode === 'ce' ? '' : 'none';
-    document.getElementById('tciMoaasControls').style.display = mode === 'moaas' ? '' : 'none';
-    document.getElementById('tciBisControls').style.display = mode === 'bis' ? '' : 'none';
+    document.getElementById('tciCeControls').hidden = mode !== 'ce';
+    document.getElementById('tciMoaasControls').hidden = mode !== 'moaas';
+    document.getElementById('tciBisControls').hidden = mode !== 'bis';
   }
 
   function plan() {
@@ -492,7 +566,7 @@ const TciController = (() => {
   }
 
   function render(result, mode) {
-    document.getElementById('tciResultsCard').style.display = '';
+    document.getElementById('tciResultsCard').hidden = false;
     const pts = result.points;
     const last = pts[pts.length - 1];
     const minBis = Math.min(...pts.map(p => p.bis));
@@ -515,10 +589,11 @@ const TciController = (() => {
     document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
       `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
     ).join('');
-    document.getElementById('tciDeepBisNotice').style.display = minBis < 50 ? '' : 'none';
+    document.getElementById('tciDeepBisNotice').hidden = !(minBis < 50);
 
     // concentration + BIS chart (incl. target Ce)
-    if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } });
+    if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } },
+      { onCursor: onCursor });
     chartConc.render(pts, [
       { key: 'cp', label: 'Cp (parent)', color: CHART_COLORS.cpRemi, axis: 'left' },
       { key: 'ceBis', label: 'Ce (BIS)', color: CHART_COLORS.ceBis, axis: 'left' },
@@ -542,19 +617,59 @@ const TciController = (() => {
       recovery.setData({ points: pts, params: result.params, ceSite: 'bis', rocCe: App.getRocCe(), locCe: App.getLocCe() });
       recovery.bindChart(chartConc.chart);
     }
+    onCursor(null);
 
     // loading-bolus note
     document.getElementById('tciBolusNote').innerHTML =
       `At t=0, give a <b>loading bolus of ${result.loadingBolusMg.toFixed(1)} mg</b> (0.1 mg/kg); thereafter the infusion rate maintains plasma at the target.`;
 
     // schedule table at clinical sample times
-    const wanted = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60].filter(t => t <= pts[pts.length - 1].timeMin);
+    // The columns follow the site the plan was built on, so the target and the
+    // concentration beside it are the same quantity, and the effect beside them
+    // is the one that Ce predicts.
+    const onBis = result.targetSite === 'bis';
+    document.getElementById('tciThCe').textContent = onBis ? 'Ce (BIS)' : 'Ce (MOAA/S)';
+    document.getElementById('tciThOut').textContent = onBis ? 'BIS' : 'MOAA/S';
+    const wanted = SCHEDULE_TIMES.filter(t => t <= pts[pts.length - 1].timeMin);
     const body = document.getElementById('tciScheduleBody');
     body.innerHTML = wanted.map(t => {
       const p = pts.reduce((a, b) => Math.abs(b.timeMin - t) < Math.abs(a.timeMin - t) ? b : a);
       const bolus = t === 0 ? result.loadingBolusMg.toFixed(1) : '—';
-      return `<tr><td>${t}</td><td>${bolus}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${p.ceBis.toFixed(3)}</td><td>${p.bis.toFixed(1)}</td></tr>`;
+      return `<tr><td>${t}</td><td>${bolus}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${(onBis ? p.ceBis : p.ceMoaas).toFixed(3)}</td><td>${onBis ? p.bis.toFixed(1) : p.moaasWeighted.toFixed(2)}</td></tr>`;
     }).join('');
+  }
+
+  // The reader pointed at the chart (or cleared the cursor): the strip and the
+  // emergence forecast both follow that minute, and go back to the end of the plan.
+  function onCursor(t) {
+    if (!lastResult) return;
+    const pts = lastResult.points;
+    App.setReadout('tci', t == null
+      ? App.pointReadout(pts[pts.length - 1], 'end of plan')
+      : App.pointReadout(nearestByTime(pts, t), 'at cursor'));
+    if (recovery) recovery.setStopTime(t);
+  }
+
+  /**
+   * Hands the plan to Monitoring as a pump schedule: the loading bolus at 0 and
+   * the rate at each time in the dosing table, each held until the next. No stop
+   * is added: when the infusion ends is the reader's decision, made by adding an
+   * event, and the last rate is held until then. Monitoring then simulates that
+   * schedule, so its Ce is what
+   * the stepped schedule gives, not the continuous plan's: the two are close once
+   * the plan settles and differ in the first minutes, where the plan's rate
+   * changes faster than the table's steps.
+   */
+  function sendToMonitoring() {
+    if (!lastResult) return;
+    const pts = lastResult.points;
+    const end = pts[pts.length - 1].timeMin;
+    const events = SCHEDULE_TIMES.filter(t => t <= end).map(t =>
+      new DoseEvent(t, t === 0 ? Number(lastResult.loadingBolusMg.toFixed(1)) : 0,
+        Number(nearestByTime(pts, t).infusionMgHr.toFixed(1))));
+    if (MonitoringController.loadEvents(events)) {
+      document.querySelector('.tab[data-panel="panel-monitoring"]').click();
+    }
   }
 
   function exportCsv() {
@@ -576,6 +691,8 @@ const TciController = (() => {
     document.querySelectorAll('input[name="tciMode"]').forEach(r => r.addEventListener('change', syncModeUI));
     document.getElementById('tciPlanBtn').addEventListener('click', plan);
     document.getElementById('tciCsvBtn').addEventListener('click', exportCsv);
+    document.getElementById('tciToMonBtn').addEventListener('click', sendToMonitoring);
+    document.getElementById('tciLocMargin').addEventListener('input', updateLocBanner);
     document.querySelectorAll('#tciCeControls [data-ce]').forEach(b =>
       b.addEventListener('click', () => { document.getElementById('tciCe').value = b.dataset.ce; }));
     document.querySelectorAll('#tciBisControls [data-bis]').forEach(b =>

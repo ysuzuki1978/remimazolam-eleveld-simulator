@@ -192,6 +192,7 @@ class SimulationResult {
 
   get maxCpRemi() { return Math.max(0, ...this.timePoints.map(p => p.cpRemi)); }
   get maxCeBis() { return Math.max(0, ...this.timePoints.map(p => p.ceBis)); }
+  get maxCeMoaas() { return Math.max(0, ...this.timePoints.map(p => p.ceMoaas)); }
   get minBis() { return this.timePoints.length ? Math.min(...this.timePoints.map(p => p.bis)) : null; }
   get maxCpMet() { return Math.max(0, ...this.timePoints.map(p => p.cpMet)); }
 

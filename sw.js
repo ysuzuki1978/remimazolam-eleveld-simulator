@@ -3,17 +3,16 @@
  * Cache-first for local assets, network-first for the Chart.js CDN.
  */
 
-const CACHE_NAME = 'remimazolam-eleveld-v1.12.0';
+const CACHE_NAME = 'remimazolam-eleveld-v1.14.0';
 
 const LOCAL_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './css/main.css',
-  './js/vendor/hammer.min.js',
-  './js/vendor/chartjs-plugin-zoom.min.js',
   './js/models.js',
   './js/remimazolam-eleveld-pkpd.js',
+  './js/chart-zoom.js',
   './js/charts.js',
   './js/info-popup.js',
   './js/recovery-panel.js',
@@ -26,7 +25,7 @@ const LOCAL_ASSETS = [
 ];
 
 const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js'
+  './js/vendor/chart.min.js'
 ];
 
 self.addEventListener('install', (event) => {
