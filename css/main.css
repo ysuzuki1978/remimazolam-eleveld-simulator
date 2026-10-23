@@ -51,43 +51,60 @@ body {
   font-size: 16px;
   line-height: 1.5;
   min-height: 100vh;
-  padding-bottom: env(safe-area-inset-bottom);
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------------- Header ---------------- */
-.app-header {
+/* ---------------- Sticky top: header + readout ---------------- */
+.top {
   position: sticky; top: 0; z-index: 40;
-  background: linear-gradient(180deg, #0D1117 0%, rgba(13,17,23,0.92) 100%);
-  backdrop-filter: blur(8px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
-  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
 }
+.app-header { padding: calc(env(safe-area-inset-top) + 8px) 16px 6px; }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .app-header h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.2px; }
 .app-header .sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 1px; }
-.patient-summary {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 10px; gap: 10px;
-}
-.patient-summary .info { font-size: 0.8rem; color: var(--text-dim); font-family: var(--mono); }
+.patient-summary { margin-top: 4px; }
+.patient-summary .info { font-size: 0.72rem; line-height: 1.4; color: var(--text-dim); font-family: var(--mono); }
 .patient-summary .info b { color: var(--text); font-weight: 600; }
+
+/* The numbers this application exists to give, pinned above every tab. */
+.readout { padding: 6px 16px 8px; background: var(--bg-elev); border-top: 1px solid var(--border); }
+.rd-src { font-size: 0.68rem; color: var(--text-dim); margin-bottom: 2px; }
+.rd-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) repeat(2, minmax(0, 1.1fr)); gap: 6px; }
+.rd { text-align: center; min-width: 0; }
+.rd-val {
+  font-family: var(--mono); font-size: 1.35rem; font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.rd-lbl { font-size: 0.64rem; color: var(--text-dim); white-space: nowrap; }
+.rd-bis .rd-val { color: var(--c-bis); }
+.rd-moaas .rd-val { color: var(--c-moaas); }
+.rd-sub { font-size: 0.66rem; color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rd-sub b { font-family: var(--mono); font-weight: 600; }
+.rd-bis .rd-sub b { color: var(--c-ce-bis); }
+.rd-moaas .rd-sub b { color: var(--c-moaas); }
 
 /* ---------------- Layout ---------------- */
 .container { max-width: 920px; margin: 0 auto; padding: 16px; }
 
 /* ---------------- Tabs ---------------- */
-.tabs {
-  display: flex; gap: 4px; background: var(--bg-elev);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 4px; margin: 14px 0;
+/* Fixed to the bottom of the screen, where a thumb reaches it. From 900px it
+   goes back to a segmented bar above the panels. */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  display: flex; background: #010409; border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 .tab {
-  flex: 1; text-align: center; padding: 9px 6px; border-radius: var(--radius-sm);
-  font-size: 0.8rem; font-weight: 500; color: var(--text-dim);
-  background: transparent; border: none; cursor: pointer; transition: all 0.15s;
+  flex: 1; min-width: 0; min-height: 54px; text-align: center; padding: 0 4px;
+  font-size: 0.82rem; font-weight: 600; color: var(--text-dim);
+  background: transparent; border: none; border-top: 2px solid transparent;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.tab.active { background: var(--primary-dim); color: #fff; }
+.tab.active { color: #fff; border-top-color: var(--primary); background: rgba(91,164,207,0.1); }
 .tab:disabled { opacity: 0.4; cursor: not-allowed; }
+.tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 .panel { display: none; }
 .panel.active { display: block; animation: fade 0.2s ease; }
@@ -104,7 +121,7 @@ body {
 /* ---------------- Forms ---------------- */
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 5px; }
-.field input[type="text"], .field input[type="number"], .field select {
+.field input[type="text"], .field input[type="number"], .field input[type="time"], .field select {
   width: 100%; padding: 10px 12px; font-size: 16px; font-family: var(--font);
   background: var(--bg); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
@@ -150,6 +167,28 @@ body {
 .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
 .btn-block { width: 100%; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+/* A time field with a "Now" button beside it. The selector is heavier than
+   `.field input[type="time"]` so that its width: 100% does not win and push the
+   button onto its own line; iOS keeps a time input at its intrinsic width unless
+   the width is taken off it. */
+.time-row { display: flex; gap: 8px; align-items: stretch; }
+.field .time-row input[type="time"] { width: auto; flex: 1 1 0; min-width: 0; }
+.time-now-btn { flex-shrink: 0; white-space: nowrap; }
+.btn-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.btn-grid .btn { padding-left: 6px; padding-right: 6px; }
+.mb-6 { margin-bottom: 6px; } .mb-12 { margin-bottom: 12px; } .mt-12 { margin-top: 12px; }
+.notice-banner { text-align: center; font-weight: 600; }
+.loc-margin { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.loc-margin input {
+  width: 5em; padding: 8px 10px; font-size: 16px; font-family: var(--font); text-align: right;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+}
+.loc-margin input:focus { outline: none; border-color: var(--primary); }
+.loc-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.metrics-2 { grid-template-columns: 1fr 1fr; margin-bottom: 4px; }
 
 /* ---------------- Metric readouts ---------------- */
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
@@ -167,12 +206,43 @@ body {
 .metric.moaas .val { color: var(--c-moaas); }
 
 /* ---------------- Chart ---------------- */
-.chart-wrap { position: relative; height: 320px; margin: 8px 0; }
-@media (max-width: 560px) { .chart-wrap { height: 260px; } }
-.chart-hint {
-  font-size: 0.68rem; color: var(--text-faint); text-align: center;
-  margin: -2px 0 8px; user-select: none;
+/* `touch-action: pan-y` leaves vertical scrolling to the browser and hands every
+   horizontal drag and pinch to chart-zoom.js. */
+.chart-wrap {
+  position: relative; height: 320px; margin: 8px 0;
+  touch-action: pan-y; -webkit-user-select: none; user-select: none;
 }
+.chart-wrap.short { height: 200px; }
+
+/* The legend, outside the canvas: one chip per series, which also reads the
+   value at the cursor. The arrow says which y axis to read it on. */
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.legend-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px;
+  padding: 4px 10px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  font: inherit; font-size: 0.72rem; line-height: 1.3; cursor: pointer;
+}
+.legend-chip.off { opacity: 0.42; }
+.legend-chip.off .legend-name { text-decoration: line-through; }
+.legend-swatch { flex-shrink: 0; width: 16px; height: 0; border-top: 3px solid var(--swatch); }
+.legend-name { font-weight: 600; color: var(--text); }
+.legend-value { font-family: var(--mono); font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.legend-value:empty { display: none; }
+.legend-unit { color: var(--text-faint); font-size: 0.66rem; }
+
+.chart-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 8px; }
+.chart-hint { font-size: 0.68rem; line-height: 1.4; color: var(--text-faint); }
+.chart-zoom { display: flex; gap: 6px; flex-shrink: 0; }
+.zoom-btn {
+  min-width: 40px; min-height: 36px; padding: 0 10px;
+  background: var(--bg-elev-2); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  font: inherit; font-size: 1.05rem; cursor: pointer;
+}
+.zoom-btn:hover:not(:disabled) { border-color: var(--primary); }
+.zoom-btn:disabled { opacity: 0.35; cursor: default; }
+.zoom-reset, .zoom-clear { font-size: 0.74rem; font-weight: 600; }
 
 /* ---------------- Emergence forecast panel ---------------- */
 .recovery {
@@ -205,7 +275,7 @@ body {
 }
 .rec-roc .rec-ctrl { font-size: 0.78rem; color: var(--text); }
 .rec-roc input[type="number"] {
-  width: 82px; padding: 5px 8px; font-size: 0.9rem; font-family: var(--mono);
+  width: 96px; padding: 5px 8px; font-size: 0.9rem; font-family: var(--mono);
   background: var(--bg-elev); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: 6px;
 }
@@ -275,7 +345,7 @@ body {
 .tbl th, .tbl td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--border); }
 .tbl th { color: var(--text-dim); font-weight: 600; text-align: right; }
 .tbl td:first-child, .tbl th:first-child { text-align: left; }
-.tbl-wrap { max-height: 340px; overflow-y: auto; }
+.tbl-wrap { max-height: 340px; overflow: auto; }
 
 /* ---------------- Notice / banners ---------------- */
 .notice {
@@ -314,4 +384,78 @@ body {
   background: var(--primary); color: #06121b; padding: 10px 16px;
   border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; z-index: 200;
   box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.update-btn {
+  margin-left: 10px; padding: 5px 14px; border: none; border-radius: 8px;
+  background: #06121b; color: #fff; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+
+/* =================================================================
+   Phone (below 900px). Last in the file, so these win over the rules above.
+   ================================================================= */
+@media (max-width: 899.98px) {
+  .app-header .sub { display: none; }
+  .container { padding: 12px 16px calc(84px + env(safe-area-inset-bottom)); }
+  .app-footer { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .update-banner { bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .notice-banner { font-size: 0.72rem; padding: 6px 10px; margin-top: 0; }
+
+  /* iOS Safari zooms the whole page when a field under 16px takes focus and
+     does not zoom back out. Every field here is at least 16px, with a selector
+     heavier than any class rule above so none of them can lower it. */
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), select:not([multiple]) { font-size: 16px; }
+
+  /* Tap targets of 44px or more. */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 44px; }
+  .stepper button { width: 44px; height: 44px; }
+  .stepper input, .field input[type="text"], .field input[type="number"], .field input[type="time"], .field select { min-height: 44px; }
+  .radio-row label { min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .rec-chip { min-height: 44px; padding: 6px 14px; }
+  .rec-roc input[type="number"] { min-height: 44px; }
+  .zoom-btn { min-width: 44px; min-height: 44px; }
+  .chart-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  /* Name on one line, value on the next. Side by side they left the name 60px
+     and cut "Ce (BIS)" and "Ce (MOAA/S)" to "Ce (B…" and "Ce (M…", which are the
+     two lines most easily mistaken for each other. */
+  .legend-chip {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "sw name name" "val val unit";
+    align-items: center; column-gap: 6px; row-gap: 0;
+    min-height: 44px; min-width: 0; padding: 5px 12px; border-radius: 14px;
+  }
+  .legend-swatch { grid-area: sw; }
+  .legend-name { grid-area: name; min-width: 0; text-align: left; white-space: nowrap; }
+  .legend-value { grid-area: val; justify-self: start; }
+  .legend-unit { grid-area: unit; justify-self: end; }
+  .legend-unit .u { display: none; }
+  /* the hit area of an ⓘ grows without moving anything around it */
+  .info-ico { padding: 12px; margin: -12px; }
+
+  .chart-wrap { height: 380px; height: clamp(280px, calc(100vh - 400px), 560px); height: clamp(280px, calc(100dvh - 400px), 560px); }
+  .chart-wrap.short { height: 200px; height: clamp(180px, 26vh, 240px); }
+  .tbl { font-size: 0.74rem; }
+  .tbl th, .tbl td { padding: 7px 6px; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* a phone on its side has no height to spare for pinned strips */
+@media (max-height: 500px) and (max-width: 899.98px) {
+  .top { position: static; }
+  .container { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .tab { min-height: 44px; }
+  .chart-wrap { height: 280px; }
+}
+
+@media (min-width: 900px) {
+  .tabbar {
+    position: static; z-index: auto; margin: 14px 0; gap: 4px; padding: 4px;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .tab { min-height: 0; padding: 9px 6px; border-top: none; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.8rem; }
+  .tab.active { background: var(--primary-dim); }
+  .chart-wrap { height: 340px; }
+  .rd-val { font-size: 1.5rem; }
+  /* header and readout line up with the 920px column below them */
+  .app-header, .readout { padding-left: max(16px, calc((100% - 920px) / 2 + 16px)); padding-right: max(16px, calc((100% - 920px) / 2 + 16px)); }
 }

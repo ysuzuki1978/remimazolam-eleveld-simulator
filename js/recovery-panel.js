@@ -15,8 +15,8 @@
  * benzodiazepine the model's BIS does not reliably reach ~70 at emergence
  * (ceiling), so a recorded ROC concentration is the better personalised target.
  *
- * The stop point defaults to the end of the run; hovering the bound chart moves
- * it to the hovered time ("from MM:SS"), so induction / maintenance / pre-wake
+ * The stop point defaults to the end of the run; hovering the bound chart, or
+ * tapping it (setStopTime), moves it to that time ("from MM:SS"), so induction / maintenance / pre-wake
  * scenarios can be compared. The metabolite (CNS7054) accumulated up to the
  * stop point is carried through the washout, so tolerance is reflected.
  */
@@ -28,7 +28,8 @@ class RecoveryPanel {
     /** @type {{points:Object[], params:Object, ceSite:string}|null} */
     this.data = null;
     this.chart = null;
-    this.hoverIdx = null;      // index of the hovered sample point (null = end of run)
+    this.hoverIdx = null;      // index of the sample point the stop point is on (null = end of run)
+    this.pinIdx = null;        // index of the point the reader tapped; hover falls back to it
     this.decFrac = 0.5;        // selected Ce-decrement fraction (0.5 / 0.75 / 0.9)
     this.rocTouched = false;   // true once ROC is recorded or the field is typed
     this.seedLoc = null;       // recorded LOC Ce, used to seed the wake threshold
@@ -106,6 +107,7 @@ class RecoveryPanel {
   setData(data) {
     this.data = data && data.points && data.points.length ? { ceSite: 'bis', ...data } : null;
     this.hoverIdx = null;
+    this.pinIdx = null;
     if (data) {
       if (data.locCe != null) this.seedLoc = +data.locCe;
       // an actual recorded ROC wins; otherwise seed the wake threshold from LOC
@@ -148,13 +150,24 @@ class RecoveryPanel {
     this.ui.rocSrc.classList.toggle('shown', seeded);
   }
 
+  /**
+   * Pin the stop point to minute t (a tap on the chart), or back to the end of
+   * the run with null. A finger has no hover, so this is how a phone moves it.
+   */
+  setStopTime(t) {
+    if (!this.data) return;
+    this.pinIdx = t == null ? null : this._nearestIndex(t);
+    this.hoverIdx = this.pinIdx;
+    this.update();
+  }
+
   /** Bind chart hover so the stop point tracks the cursor time. */
   bindChart(chart) {
     if (!chart || !chart.canvas || this._boundCanvas === chart.canvas) { this.chart = chart; return; }
     this.chart = chart;
     this._boundCanvas = chart.canvas;
     chart.canvas.addEventListener('mousemove', (e) => this._onHover(e));
-    chart.canvas.addEventListener('mouseleave', () => { if (this.hoverIdx !== null) { this.hoverIdx = null; this.update(); } });
+    chart.canvas.addEventListener('mouseleave', () => { if (this.hoverIdx !== this.pinIdx) { this.hoverIdx = this.pinIdx; this.update(); } });
   }
 
   _onHover(e) {
@@ -195,7 +208,7 @@ class RecoveryPanel {
       return;
     }
     this.ui.from.textContent = this.hoverIdx !== null
-      ? `from ${fmtClock(sp.timeMin)} (hover)`
+      ? `from ${fmtClock(sp.timeMin)} (${this.hoverIdx === this.pinIdx ? 'cursor' : 'hover'})`
       : 'from end of plan';
 
     const rocRaw = parseFloat(this.ui.roc.value);
