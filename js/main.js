@@ -54,13 +54,12 @@ const App = (() => {
   function drawReadout() {
     const r = readouts[activeSource];
     const set = (id, v) => { document.getElementById(id).textContent = v; };
-    const f = (x, d) => (x == null || !Number.isFinite(x)) ? '—' : x.toFixed(d);
     set('rdSrc', `${SOURCE_LABEL[activeSource]} · ${r ? r.note : 'no run yet'}`);
-    set('rdTime', r ? f(r.timeMin, 1) : '—');
-    set('rdCe', r ? f(r.ce, 2) : '—');
-    set('rdCeMoaas', r ? f(r.ceMoaas, 2) : '—');
-    set('rdBis', r ? f(r.bis, 1) : '—');
-    set('rdMoaas', r ? f(r.moaas, 1) : '—');
+    set('rdTime', r ? formatNumber(r.timeMin, 1) : '—');
+    set('rdCe', r ? formatNumber(r.ce, 2) : '—');
+    set('rdCeMoaas', r ? formatNumber(r.ceMoaas, 2) : '—');
+    set('rdBis', r ? formatNumber(r.bis, 1) : '—');
+    set('rdMoaas', r ? formatNumber(r.moaas, 1) : '—');
   }
 
   /** The strip's reading for one result point, whichever engine produced it. */
@@ -374,8 +373,6 @@ const InductionController = (() => {
   let chart = null;
   const locSnapshots = [];
 
-  function fmt(x, d = 2) { return (x == null || !Number.isFinite(x)) ? '—' : x.toFixed(d); }
-
   function setRunningUI(running) {
     document.getElementById('indStartBtn').disabled = running;
     document.getElementById('indPauseBtn').disabled = !running;
@@ -385,7 +382,7 @@ const InductionController = (() => {
   }
 
   function onUpdate(s) {
-    document.getElementById('indCp').innerHTML = `${fmt(s.cp)}<span class="unit"> µg/mL</span>`;
+    document.getElementById('indCp').innerHTML = `${formatNumber(s.cp)}<span class="unit"> µg/mL</span>`;
     App.setReadout('induction', { timeMin: s.elapsedMin, ce: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis, moaas: s.moaasWeighted,
       note: s.running ? 'live' : 'paused' });
     if (chart) chart.addPoint(s.elapsedMin, { cp: s.cp, ceBis: s.ceBis, ceMoaas: s.ceMoaas, bis: s.bis });

@@ -11,6 +11,8 @@ const LOCAL_ASSETS = [
   './manifest.json',
   './css/main.css',
   './js/clock.js',
+  './js/format.js',
+  './js/series.js',
   './js/models.js',
   './js/remimazolam-eleveld-pkpd.js',
   './js/chart-zoom.js',

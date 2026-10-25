@@ -175,7 +175,7 @@ class SimulationResult {
     for (const tp of this.timePoints) {
       lines.push([
         tp.timeMin.toFixed(3),
-        fmt(tp.cpRemi), fmt(tp.ceBis), fmt(tp.ceMoaas), fmt(tp.cpMet),
+        csvNumber(tp.cpRemi), csvNumber(tp.ceBis), csvNumber(tp.ceMoaas), csvNumber(tp.cpMet),
         tp.bis != null ? tp.bis.toFixed(2) : '',
         tp.moaasWeighted != null ? tp.moaasWeighted.toFixed(3) : '',
         tp.infusionMgHr != null ? tp.infusionMgHr.toFixed(4) : ''
@@ -183,10 +183,6 @@ class SimulationResult {
     }
     return lines.join('\n');
   }
-}
-
-function fmt(x) {
-  return (x == null || !Number.isFinite(x)) ? '' : x.toFixed(5);
 }
 
 /* ------------------------------------------------------------------ */

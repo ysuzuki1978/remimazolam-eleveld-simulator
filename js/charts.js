@@ -63,16 +63,6 @@ function axisStyle(title, extra = {}) {
   }, extra);
 }
 
-/** The point whose timeMin is closest to t, in points sorted by timeMin. */
-function nearestByTime(points, t) {
-  let lo = 0, hi = points.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (points[mid].timeMin < t) lo = mid + 1; else hi = mid;
-  }
-  return (lo > 0 && t - points[lo - 1].timeMin < points[lo].timeMin - t) ? points[lo - 1] : points[lo];
-}
-
 /** Legend chip markup. `valueFor` is the key the value span is filled by. */
 function chipHtml(c) {
   return `<button type="button" class="legend-chip${c.hidden ? ' off' : ''}" data-key="${c.key}" aria-pressed="${!c.hidden}">` +
