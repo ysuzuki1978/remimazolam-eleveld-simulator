@@ -94,7 +94,7 @@ const App = (() => {
       document.getElementById('pAge').value = patient.age;
       document.getElementById('pWeight').value = patient.weight;
       document.getElementById('pHeight').value = patient.height ?? '';
-      document.getElementById('pAnesStart').value = patient.anesStart || '08:00';
+      document.getElementById('pAnesStart').value = patient.anesStart || DEFAULT_ANES_START;
       setRadio('pSex', patient.sex);
       setRadio('pOpioid', patient.opioid ? 'yes' : 'no');
       document.getElementById('pHepatic').value = patient.hepatic;
@@ -116,7 +116,7 @@ const App = (() => {
       opioid: getRadio('pOpioid') === 'yes',
       hepatic: document.getElementById('pHepatic').value,
       renal: document.getElementById('pRenal').value,
-      anesStart: document.getElementById('pAnesStart').value || '08:00'
+      anesStart: document.getElementById('pAnesStart').value || DEFAULT_ANES_START
     });
     const v = candidate.validate();
     const errBox = document.getElementById('patientErrors');
@@ -171,9 +171,7 @@ const App = (() => {
     document.getElementById('patientSaveBtn').addEventListener('click', savePatientFromModal);
     // the anaesthesia start field, set to the wall clock
     document.getElementById('pAnesStartNow').addEventListener('click', () => {
-      const now = new Date();
-      document.getElementById('pAnesStart').value =
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      document.getElementById('pAnesStart').value = ClockTime.now();
     });
     document.getElementById('patientModal').addEventListener('click', (e) => {
       if (e.target.id === 'patientModal') closePatientModal();
@@ -199,15 +197,15 @@ const MonitoringController = (() => {
 
   function startTime() {
     const p = App.getPatient();
-    return (p && p.anesStart) ? p.anesStart : '08:00';
+    return (p && p.anesStart) ? p.anesStart : DEFAULT_ANES_START;
   }
 
   // The elapsed minutes (timeMin) are the source of truth; the start time is
   // only a display reference. Re-derive each event's clock label as
   // (start + timeMin) so shifting the start time just shifts the labels.
   function resyncEvents() {
-    const startMin = ClockTime.toMinutes(startTime());
-    engine.doseEvents.forEach(ev => { ev.clock = ClockTime.toHHMM(startMin + ev.timeMin); });
+    const start = startTime();
+    engine.doseEvents.forEach(ev => { ev.clock = ClockTime.labelAt(start, ev.timeMin); });
     engine.doseEvents.sort((a, b) => a.timeMin - b.timeMin);
   }
 
@@ -338,9 +336,7 @@ const MonitoringController = (() => {
     document.getElementById('monAddEventBtn').addEventListener('click', openEventModal);
     // the dose time, set to the wall clock
     document.getElementById('evTimeNow').addEventListener('click', () => {
-      const now = new Date();
-      document.getElementById('evTime').value =
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      document.getElementById('evTime').value = ClockTime.now();
     });
     document.getElementById('evCancelBtn').addEventListener('click', closeEventModal);
     document.getElementById('evSaveBtn').addEventListener('click', saveEvent);

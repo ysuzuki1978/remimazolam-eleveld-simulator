@@ -10,6 +10,7 @@ const LOCAL_ASSETS = [
   './index.html',
   './manifest.json',
   './css/main.css',
+  './js/clock.js',
   './js/models.js',
   './js/remimazolam-eleveld-pkpd.js',
   './js/chart-zoom.js',
