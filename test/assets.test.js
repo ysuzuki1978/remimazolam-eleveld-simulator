@@ -27,3 +27,11 @@ test('scripts load in dependency order: clock, format and series before models, 
     assert.ok(at(a) >= 0 && at(b) >= 0 && at(a) < at(b), `${a} before ${b}`);
   }
 });
+
+test('the version is the same in package.json, index.html, sw.js and the README history', () => {
+  const v = JSON.parse(read('package.json')).version;
+  assert.ok(html.includes(`v${v}`), 'index.html footer');
+  assert.ok(sw.includes(`remimazolam-eleveld-v${v}`), 'service worker cache name');
+  assert.ok(read('README.md').includes(`**${v}**`), 'README history row');
+  assert.ok(read('CHANGELOG.md').includes(`## [${v}]`), 'CHANGELOG entry');
+});
