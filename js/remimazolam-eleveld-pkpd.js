@@ -372,8 +372,9 @@ const EleveldRemimazolam = (() => {
     };
 
     for (let s = 0; s <= totalSteps; s++) {
-      // apply any events scheduled at this step (bolus + infusion change)
-      while (ev < events.length && events[ev].step === s) {
+      // apply any events scheduled at this step (bolus + infusion change); an
+      // event before time 0 is applied at time 0 rather than blocking the queue
+      while (ev < events.length && events[ev].step <= s) {
         if (events[ev].bolusMg) bolus(y, events[ev].bolusMg);
         infMgMin = events[ev].contMgHr / 60;
         ev++;
