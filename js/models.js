@@ -107,14 +107,6 @@ class Patient {
     }
     return { isValid: errors.length === 0, errors };
   }
-
-  clone() {
-    return new Patient({
-      id: this.id, age: this.age, weight: this.weight, height: this.height,
-      sex: this.sex, opioid: this.opioid, hepatic: this.hepatic, renal: this.renal,
-      anesStart: this.anesStart
-    });
-  }
 }
 
 /* ------------------------------------------------------------------ */

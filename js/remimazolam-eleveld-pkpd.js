@@ -354,7 +354,7 @@ const EleveldRemimazolam = (() => {
 
     // snap events to the integration grid
     const events = (doseEvents || [])
-      .map(e => ({ step: Math.round(e.timeMin / dt), bolusMg: e.bolusMg || 0, contMgHr: e.continuousMgHr || 0, hasCont: e.continuousMgHr != null }))
+      .map(e => ({ step: Math.round(e.timeMin / dt), bolusMg: e.bolusMg || 0, contMgHr: e.continuousMgHr || 0 }))
       .sort((a, b) => a.step - b.step);
 
     let y = createInitialState();
