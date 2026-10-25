@@ -13,6 +13,7 @@ const LOCAL_ASSETS = [
   './js/clock.js',
   './js/format.js',
   './js/series.js',
+  './js/summary.js',
   './js/models.js',
   './js/remimazolam-eleveld-pkpd.js',
   './js/chart-zoom.js',

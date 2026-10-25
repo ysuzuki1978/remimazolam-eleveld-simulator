@@ -39,16 +39,7 @@ class MonitoringEngine {
     const duration = opts.duration != null ? opts.duration : lastEventMin + tailMin;
 
     const { points, params } = EleveldRemimazolam.simulate(this.patient, this.doseEvents, { duration, dt, sampleInterval });
-    const tps = points.map(p => new TimePoint({
-      timeMin: p.timeMin,
-      cpRemi: p.cp,
-      ceBis: p.ceBis,
-      ceMoaas: p.ceMoaas,
-      cpMet: p.cpMet,
-      bis: p.bis,
-      moaasWeighted: p.moaasWeighted,
-      infusionMgHr: p.infusionMgHr
-    }));
+    const tps = points.map(p => TimePoint.fromObservation(p));
     const result = new SimulationResult(this.patient, tps, { mode: 'monitoring', doseEvents: this.doseEvents.slice() });
     // expose raw state-carrying points + params for the recovery panel
     result.simPoints = points;

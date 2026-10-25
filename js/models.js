@@ -142,6 +142,23 @@ class TimePoint {
     this.moaasWeighted = o.moaasWeighted; // probability-weighted MOAA/S (0-5)
     this.infusionMgHr = o.infusionMgHr != null ? o.infusionMgHr : null; // mg/hr at this time
   }
+
+  /**
+   * From a point of EleveldRemimazolam.simulate() or TciEngine.plan(), whose
+   * plasma concentration is called `cp` rather than `cpRemi`.
+   */
+  static fromObservation(p) {
+    return new TimePoint({
+      timeMin: p.timeMin,
+      cpRemi: p.cp,
+      ceBis: p.ceBis,
+      ceMoaas: p.ceMoaas,
+      cpMet: p.cpMet,
+      bis: p.bis,
+      moaasWeighted: p.moaasWeighted,
+      infusionMgHr: p.infusionMgHr
+    });
+  }
 }
 
 /** Container for a completed simulation run, with summary + CSV export. */

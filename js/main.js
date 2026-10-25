@@ -6,6 +6,19 @@
  * TCI, monitoring — added in later sprints) can react to patient changes.
  */
 
+/** Offer `text` to the reader as a CSV file called `filename`. */
+function downloadCsv(filename, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** The readout strip before a run: nothing given yet, so BIS is the awake baseline and the patient is fully responsive. */
+const idleReadout = () => ({ timeMin: 0, ce: 0, ceMoaas: 0, bis: EleveldRemimazolam.REF.baseline, moaas: 5.0, note: 'not started' });
+
 const App = (() => {
   /** @type {Patient|null} */
   let patient = null;
@@ -40,7 +53,7 @@ const App = (() => {
   const SOURCE_LABEL = { induction: 'Induction', tci: 'TCI plan', monitoring: 'Monitoring' };
   const PANEL_SOURCE = { 'panel-induction': 'induction', 'panel-tci': 'tci', 'panel-monitoring': 'monitoring' };
   const readouts = {
-    induction: { timeMin: 0, ce: 0, ceMoaas: 0, bis: 93.7, moaas: 5.0, note: 'not started' },
+    induction: idleReadout(),
     tci: null,
     monitoring: null
   };
@@ -263,21 +276,8 @@ const MonitoringController = (() => {
     document.getElementById('monResultsCard').hidden = false;
     const pts = result.timePoints;
 
-    // metrics
-    const last = pts[pts.length - 1];
-    const metrics = [
-      { lbl: 'Max Cp (parent)', val: result.maxCpRemi.toFixed(3), unit: 'µg/mL', cls: 'cp' },
-      { lbl: 'Min BIS', val: result.minBis != null ? result.minBis.toFixed(1) : '—', unit: '', cls: 'bis' },
-      { lbl: 'Max Ce (BIS)', val: result.maxCeBis.toFixed(3), unit: 'µg/mL', cls: 'ce' },
-      { lbl: 'Max Ce (MOAA/S)', val: result.maxCeMoaas.toFixed(3), unit: 'µg/mL', cls: 'moaas' },
-      { lbl: 'Max metabolite', val: result.maxCpMet.toFixed(3), unit: 'µg/mL', cls: 'met' },
-      { lbl: 'Final MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '(0-5)', cls: 'moaas' }
-    ];
-    document.getElementById('monMetrics').innerHTML = metrics.map(m =>
-      `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
-    ).join('');
-
-    document.getElementById('monDeepBisNotice').hidden = !(result.minBis != null && result.minBis < 50);
+    document.getElementById('monMetrics').innerHTML = metricsHtml(monitoringMetrics(result));
+    document.getElementById('monDeepBisNotice').hidden = !reachesDeepBis(pts);
 
     // concentration + BIS chart
     if (!chartConc) chartConc = new MultiLineChart('monChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } },
@@ -322,13 +322,7 @@ const MonitoringController = (() => {
 
   function exportCsv() {
     if (!lastResult) return;
-    const blob = new Blob([lastResult.toCSV()], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `remimazolam_monitoring_${lastResult.patient.id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`remimazolam_monitoring_${lastResult.patient.id}.csv`, lastResult.toCSV());
   }
 
   function init() {
@@ -440,7 +434,7 @@ const InductionController = (() => {
   // default induction bolus = 0.1 mg/kg of the current patient
   function applyDefaultBolus() {
     const p = App.getPatient();
-    if (p && p.weight) document.getElementById('indBolus').value = (0.1 * p.weight).toFixed(1);
+    if (p && p.weight) document.getElementById('indBolus').value = (TciEngine.LOADING_MG_PER_KG * p.weight).toFixed(1);
   }
 
   function renderLoc() {
@@ -462,7 +456,7 @@ const InductionController = (() => {
     applyDefaultBolus();
     if (chart) chart.reset();
     document.getElementById('indCp').innerHTML = '0.00<span class="unit"> µg/mL</span>';
-    App.setReadout('induction', { timeMin: 0, ce: 0, ceMoaas: 0, bis: 93.7, moaas: 5.0, note: 'not started' });
+    App.setReadout('induction', idleReadout());
     setRunningUI(false);
     document.getElementById('indBolusBtn').disabled = true;
     document.getElementById('indRecordBtn').disabled = true;
@@ -500,7 +494,6 @@ const TciController = (() => {
   // The 0.15 µg/mL this replaced was written against the BIS-site Ce, whose Ce50 is
   // 0.98; against the MOAA/S site (Ce50 0.18) it is most of a Ce50, so it is not carried over.
   const locMargin = () => Math.max(0, parseFloat(document.getElementById('tciLocMargin').value) || 0);
-  const SCHEDULE_TIMES = [0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60];
 
   function currentMode() {
     const el = document.querySelector('input[name="tciMode"]:checked');
@@ -561,28 +554,9 @@ const TciController = (() => {
   function render(result, mode) {
     document.getElementById('tciResultsCard').hidden = false;
     const pts = result.points;
-    const last = pts[pts.length - 1];
-    const minBis = Math.min(...pts.map(p => p.bis));
-    const rates = pts.filter(p => p.timeMin > 0).map(p => p.infusionMgHr);
-    const finalRate = last.infusionMgHr;
-
     const siteLabel = result.targetSite === 'bis' ? 'BIS' : 'MOAA/S';
-    let targetMetric;
-    if (mode === 'bis') targetMetric = { lbl: 'Target BIS', val: String(result.bisTarget), unit: '', cls: 'ce' };
-    else if (mode === 'moaas') targetMetric = { lbl: 'Target MOAA/S', val: String(result.moaasTarget), unit: '/5', cls: 'moaas' };
-    else targetMetric = { lbl: `Target Ce (${siteLabel})`, val: pts[0].targetCe.toFixed(2), unit: 'µg/mL', cls: 'ce' };
-    const metrics = [
-      { lbl: 'Loading bolus', val: result.loadingBolusMg.toFixed(1), unit: 'mg', cls: 'cp' },
-      targetMetric,
-      { lbl: 'Final rate', val: finalRate.toFixed(1), unit: 'mg/hr', cls: 'cp' },
-      { lbl: 'Total dose', val: result.totalDoseMg.toFixed(0), unit: 'mg', cls: 'met' },
-      { lbl: 'Final BIS', val: last.bis.toFixed(1), unit: '', cls: 'bis' },
-      { lbl: 'Final MOAA/S', val: last.moaasWeighted.toFixed(2), unit: '/5', cls: 'moaas' }
-    ];
-    document.getElementById('tciMetrics').innerHTML = metrics.map(m =>
-      `<div class="metric ${m.cls}"><div class="val">${m.val}<span class="unit"> ${m.unit}</span></div><div class="lbl">${m.lbl}</div></div>`
-    ).join('');
-    document.getElementById('tciDeepBisNotice').hidden = !(minBis < 50);
+    document.getElementById('tciMetrics').innerHTML = metricsHtml(planMetrics(result, mode));
+    document.getElementById('tciDeepBisNotice').hidden = !reachesDeepBis(pts);
 
     // concentration + BIS chart (incl. target Ce)
     if (!chartConc) chartConc = new MultiLineChart('tciChartConc', { left: { title: 'Conc. (µg/mL)', min: 0 }, right: { title: 'BIS', min: 0, max: 100 } },
@@ -614,7 +588,7 @@ const TciController = (() => {
 
     // loading-bolus note
     document.getElementById('tciBolusNote').innerHTML =
-      `At t=0, give a <b>loading bolus of ${result.loadingBolusMg.toFixed(1)} mg</b> (0.1 mg/kg); thereafter the infusion rate maintains plasma at the target.`;
+      `At t=0, give a <b>loading bolus of ${result.loadingBolusMg.toFixed(1)} mg</b> (${TciEngine.LOADING_MG_PER_KG} mg/kg); thereafter the infusion rate maintains plasma at the target.`;
 
     // schedule table at clinical sample times
     // The columns follow the site the plan was built on, so the target and the
@@ -623,12 +597,9 @@ const TciController = (() => {
     const onBis = result.targetSite === 'bis';
     document.getElementById('tciThCe').textContent = onBis ? 'Ce (BIS)' : 'Ce (MOAA/S)';
     document.getElementById('tciThOut').textContent = onBis ? 'BIS' : 'MOAA/S';
-    const wanted = SCHEDULE_TIMES.filter(t => t <= pts[pts.length - 1].timeMin);
-    const body = document.getElementById('tciScheduleBody');
-    body.innerHTML = wanted.map(t => {
-      const p = pts.reduce((a, b) => Math.abs(b.timeMin - t) < Math.abs(a.timeMin - t) ? b : a);
-      const bolus = t === 0 ? result.loadingBolusMg.toFixed(1) : '—';
-      return `<tr><td>${t}</td><td>${bolus}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${(onBis ? p.ceBis : p.ceMoaas).toFixed(3)}</td><td>${onBis ? p.bis.toFixed(1) : p.moaasWeighted.toFixed(2)}</td></tr>`;
+    document.getElementById('tciScheduleBody').innerHTML = TciEngine.scheduleRows(result).map(({ timeMin, bolusMg, point: p }) => {
+      const bolus = timeMin === 0 ? bolusMg.toFixed(1) : '—';
+      return `<tr><td>${timeMin}</td><td>${bolus}</td><td>${p.infusionMgHr.toFixed(1)}</td><td>${p.targetCe.toFixed(3)}</td><td>${(onBis ? p.ceBis : p.ceMoaas).toFixed(3)}</td><td>${onBis ? p.bis.toFixed(1) : p.moaasWeighted.toFixed(2)}</td></tr>`;
     }).join('');
   }
 
@@ -655,11 +626,7 @@ const TciController = (() => {
    */
   function sendToMonitoring() {
     if (!lastResult) return;
-    const pts = lastResult.points;
-    const end = pts[pts.length - 1].timeMin;
-    const events = SCHEDULE_TIMES.filter(t => t <= end).map(t =>
-      new DoseEvent(t, t === 0 ? Number(lastResult.loadingBolusMg.toFixed(1)) : 0,
-        Number(nearestByTime(pts, t).infusionMgHr.toFixed(1))));
+    const events = TciEngine.planToDoseEvents(lastResult);
     if (MonitoringController.loadEvents(events)) {
       document.querySelector('.tab[data-panel="panel-monitoring"]').click();
     }
@@ -668,16 +635,9 @@ const TciController = (() => {
   function exportCsv() {
     if (!lastResult) return;
     const patient = App.getPatient();
-    const tps = lastResult.points.map(p => new TimePoint({
-      timeMin: p.timeMin, cpRemi: p.cp, ceBis: p.ceBis, ceMoaas: p.ceMoaas,
-      cpMet: p.cpMet, bis: p.bis, moaasWeighted: p.moaasWeighted, infusionMgHr: p.infusionMgHr
-    }));
+    const tps = lastResult.points.map(p => TimePoint.fromObservation(p));
     const res = new SimulationResult(patient, tps, { mode: `tci:${lastResult.label}` });
-    const blob = new Blob([res.toCSV()], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `remimazolam_tci_${patient.id}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`remimazolam_tci_${patient.id}.csv`, res.toCSV());
   }
 
   function init() {

@@ -41,6 +41,8 @@ const TciEngine = (() => {
   }
 
   const LOADING_MG_PER_KG = 0.1;   // standard loading bolus (mg/kg)
+  /** Minutes from the start at which the plan is read off as a pump schedule. */
+  const SCHEDULE_TIMES = Object.freeze([0, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60]);
   const CTRL_GAIN = 1.5;           // how aggressively plasma is raised to pull Ce up
   const CTRL_CLIP = 2.2;           // cap plasma overshoot at CLIP × target
 
@@ -142,7 +144,37 @@ const TciEngine = (() => {
     return r;
   }
 
-  return { plan, planCeTarget, planBisTarget, planMoaasTarget };
+  /**
+   * The plan read off at clinical times: for each time in `times` that the plan
+   * reaches, the loading bolus (at 0 only) and the sampled point nearest to it.
+   * @param {{loadingBolusMg:number, points:Object[]}} result  from plan()
+   * @param {number[]} [times=SCHEDULE_TIMES]  minutes
+   * @returns {{timeMin:number, bolusMg:number, point:Object}[]}  bolusMg in mg
+   */
+  function scheduleRows(result, times = SCHEDULE_TIMES) {
+    const nearest = (typeof nearestByTime !== 'undefined') ? nearestByTime : require('./series.js').nearestByTime;
+    const end = result.points[result.points.length - 1].timeMin;
+    return times.filter(t => t <= end).map(t => ({
+      timeMin: t,
+      bolusMg: t === 0 ? result.loadingBolusMg : 0,
+      point: nearest(result.points, t)
+    }));
+  }
+
+  /**
+   * The plan as a pump schedule for Monitoring: the loading bolus at 0 and the
+   * rate at each schedule time, each held until the next (rounded to the 0.1 mg
+   * and 0.1 mg/hr a pump is set in). No stop is added.
+   * @returns {DoseEvent[]}
+   */
+  function planToDoseEvents(result, times = SCHEDULE_TIMES) {
+    const Event = (typeof DoseEvent !== 'undefined') ? DoseEvent : require('./models.js').DoseEvent;
+    return scheduleRows(result, times).map(row =>
+      new Event(row.timeMin, Number(row.bolusMg.toFixed(1)), Number(row.point.infusionMgHr.toFixed(1))));
+  }
+
+  return { LOADING_MG_PER_KG, SCHEDULE_TIMES, plan, planCeTarget, planBisTarget, planMoaasTarget,
+           scheduleRows, planToDoseEvents };
 })();
 
 if (typeof window !== 'undefined') window.TciEngine = TciEngine;
