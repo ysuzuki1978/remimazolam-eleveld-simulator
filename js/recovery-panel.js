@@ -208,7 +208,7 @@ class RecoveryPanel {
       return;
     }
     this.ui.from.textContent = this.hoverIdx !== null
-      ? `from ${fmtClock(sp.timeMin)} (${this.hoverIdx === this.pinIdx ? 'cursor' : 'hover'})`
+      ? `from ${formatElapsedClock(sp.timeMin)} (${this.hoverIdx === this.pinIdx ? 'cursor' : 'hover'})`
       : 'from end of plan';
 
     const rocRaw = parseFloat(this.ui.roc.value);
@@ -219,7 +219,7 @@ class RecoveryPanel {
     });
 
     // MOAA/S (model-based emergence)
-    this.ui.vMoaas.textContent = fmtDur(r.toMoaas);
+    this.ui.vMoaas.textContent = formatDuration(r.toMoaas);
 
     // Ce -> ROC (personalised wake-up threshold)
     if (rocCe == null) {
@@ -229,29 +229,13 @@ class RecoveryPanel {
     } else {
       this.ui.rocTileSub.textContent = `(${rocCe.toFixed(2)} µg/mL)`;
       this.ui.vWake.classList.remove('unreachable');
-      this.ui.vWake.textContent = r.alreadyAwakeByCe ? 'now (Ce ≤ ROC)' : fmtDur(r.toCeWake);
+      this.ui.vWake.textContent = r.alreadyAwakeByCe ? 'now (Ce ≤ ROC)' : formatDuration(r.toCeWake);
     }
 
     // secondary PK decrement
-    this.ui.vDec.textContent = fmtDur(r.toCeDecrement);
+    this.ui.vDec.textContent = formatDuration(r.toCeDecrement);
     this.ui.decConc.textContent = `${r.ce0.toFixed(2)} → ${(r.ce0 * (1 - this.decFrac)).toFixed(2)} µg/mL`;
   }
-}
-
-/** minutes -> "X.X min" / "now" / ">12 h" (null = not reached within horizon) */
-function fmtDur(min) {
-  if (min == null) return '> 12 h';
-  if (min <= 0) return 'now';
-  if (min < 100) return `${min.toFixed(1)} min`;
-  const h = Math.floor(min / 60), m = Math.round(min % 60);
-  return `${h} h ${m} min`;
-}
-
-/** elapsed minutes -> "MM:SS" clock-style label for the "from" note */
-function fmtClock(min) {
-  const total = Math.max(0, Math.round(min * 60));
-  const mm = Math.floor(total / 60), ss = total % 60;
-  return `${mm}:${String(ss).padStart(2, '0')}`;
 }
 
 if (typeof window !== 'undefined') window.RecoveryPanel = RecoveryPanel;

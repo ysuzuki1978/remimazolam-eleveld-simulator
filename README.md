@@ -121,7 +121,15 @@ python3 -m http.server 8000   # = npm run serve
 # → http://localhost:8000
 ```
 
-## Model validation
+## Tests and model validation
+
+```bash
+npm test                  # node --test: engine vs exact solution, parameters, clock, plan, negative controls (no dependencies)
+```
+
+`npm test` compares the engine with the exact solution of the 8-state system (matrix exponential), replays the
+TCI plan with the rates it chose, drives the induction engine with a fake clock, and includes negative
+controls (mg/min for mg/hr, events one step late, ke0 1 % off, forward Euler must all fail the comparison).
 
 ```bash
 npm run validate          # = model + TCI test suites (85 checks)
@@ -149,7 +157,9 @@ What is checked (selected):
 ## Tech
 
 Vanilla JS (globals), no build step. `js/remimazolam-eleveld-pkpd.js` is the model core; each mode
-(induction / tci / monitoring) is an engine + Chart.js + a PWA service worker.
+(induction / tci / monitoring) is an engine + Chart.js + a PWA service worker. Pure helpers that load in Node
+without a DOM: `clock.js` (HH:MM and elapsed time), `format.js`, `series.js`, `summary.js` (metric tiles),
+`models.js` (patient, dose events, CSV) and the three engines; `main.js` holds the controllers and the DOM.
 
 ## Version history
 
@@ -159,6 +169,7 @@ across these releases — the work is UI/UX and prediction tooling on top of the
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| **1.14.1** | 2026-10-25 | **Cleanup.** Clock, formatting, plan-to-schedule and metric-tile helpers written once (`clock.js`, `format.js`, `series.js`, `summary.js`, `TciEngine.scheduleRows/planToDoseEvents`); `npm test` added (engine vs exact solution, parameters, clock, plan, negative controls). All numbers unchanged (bit-identical snapshot vs 1.14.0); one engine fix for events dated before time 0. See CHANGELOG. |
 | **1.14.0** | 2026-10-23 | **Planning on the MOAA/S site.** The LOC hand-off to the TCI plan now uses the Ce (MOAA/S) recorded at LOC with an editable margin (default 0; the previous fixed +0.15 µg/mL was written for the BIS-site Ce); the dosing table shows the Ce and effect of the site the plan targets; **Send to Monitoring** loads the plan as a stepped dose schedule (no stop event is added; the last rate is held until the reader adds one); Monitoring reports Max Ce (MOAA/S); **`Now` buttons** beside the anaesthesia start time (patient settings) and the dose event time (Monitoring). |
 | **1.13.0** | 2026-10-23 | **Phone layout.** Bottom tab bar; effect-site Ce / predicted BIS / MOAA/S pinned above every tab (live during induction, at the chart cursor or the end of the run on the TCI and Monitoring tabs). Charts: tap sets a time cursor, pinch / drag / double-tap / +−Fit buttons, legend chips read the values at the cursor; the emergence forecast follows the cursor (a finger has no hover). `chartjs-plugin-zoom` + `hammer.js` replaced by `js/chart-zoom.js` (`touch-action: pan-y`, so the page still scrolls over a chart). All fields ≥ 16 px (no iOS focus-zoom), tap targets ≥ 44 px. Model code unchanged. |
 | **1.12.0** | 2026-07-22 | The wake-up Ce (ROC) field is **seeded from the recorded LOC Ce** when no ROC has been recorded (labelled "seeded from LOC", editable), so an emergence estimate is available from induction — before an actual ROC can be observed. |
